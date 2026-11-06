@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>MessagePublisher</RootNamespace>
+    <AssemblyName>MessagePublisher</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NuGet.Protocol" Version="6.11.0" />
+    <PackageReference Include="NuGet.Packaging" Version="6.11.0" />
+  </ItemGroup>
+</Project>
