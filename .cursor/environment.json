@@ -1,0 +1,4 @@
+{
+  "name": "test-message-publisher",
+  "install": "npm ci --ignore-scripts"
+}

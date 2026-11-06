@@ -1,0 +1,10 @@
+{
+  "name": "test-message-publisher",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Placeholder workspace for Cloud Agent environments; extend when you add real code.",
+  "scripts": {
+    "validate": "node -e \"console.log('ok')\""
+  }
+}
