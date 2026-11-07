@@ -18,5 +18,5 @@ public sealed class JsonMessageSerializer : IMessageSerializer
     }
 
     public string Serialize(object instance, Type runtimeType) =>
-        JsonSerializer.Serialize(runtimeType, instance, _options);
+        JsonSerializer.Serialize(instance, runtimeType, _options);
 }
