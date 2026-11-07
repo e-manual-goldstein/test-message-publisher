@@ -91,15 +91,30 @@
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
 
-      <DockPanel Grid.Column="0">
-        <Button DockPanel.Dock="Bottom" Margin="0,8,0,0" Padding="8,4" Content="Load packages"
-                Command="{Binding LoadPackageCommand}" />
-        <StackPanel DockPanel.Dock="Top">
-          <TextBlock Text="Message types" FontWeight="SemiBold" Margin="0,0,0,4" />
-          <ListBox ItemsSource="{Binding MessageTypes}" SelectedIndex="{Binding SelectedMessageTypeIndex, Mode=TwoWay}" MinHeight="200" />
-          <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="Gray" FontSize="11" />
+      <Grid Grid.Column="0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="Message Types" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <ListBox Grid.Row="1"
+                 ItemsSource="{Binding FilteredMessageTypes}"
+                 DisplayMemberPath="ShortName"
+                 SelectedItem="{Binding SelectedMessageTypeItem, Mode=TwoWay}"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 Margin="0,0,0,8" />
+        <TextBlock Grid.Row="2" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="Gray" FontSize="11" />
+        <StackPanel Grid.Row="3" Margin="0,0,0,8">
+          <TextBlock Text="Filter" FontSize="11" Foreground="Gray" Margin="0,0,0,2" />
+          <TextBox Text="{Binding MessageTypeFilter, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="Types whose short name contains this text" />
         </StackPanel>
-      </DockPanel>
+        <Button Grid.Row="4" Padding="8,4" Content="Load packages" Command="{Binding LoadPackageCommand}" />
+      </Grid>
 
       <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#EEE" />
 

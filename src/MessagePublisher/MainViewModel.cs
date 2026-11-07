@@ -29,6 +29,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _statusText = "Ready.";
     private string _serializedPreview = "";
     private bool _isBusy;
+    private string _messageTypeFilter = "";
+    private MessageTypeListItem? _selectedMessageTypeItem;
 
     public MainViewModel()
     {
@@ -47,11 +49,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         FeedSources = new ObservableCollection<NuGetFeedOption>();
         MessagePackageVersions = new ObservableCollection<string>();
         BasePackageVersions = new ObservableCollection<string>();
-        MessageTypes = new ObservableCollection<string>();
+        FilteredMessageTypes = new ObservableCollection<MessageTypeListItem>();
         PropertyEditors = new ObservableCollection<PropertyEditorViewModel>();
 
         LoadPackageCommand = new RelayCommand(async _ => await LoadPackageAsync(), _ => CanLoadPackages());
-        BuildSerializedCommand = new RelayCommand(_ => BuildSerialized(), _ => !IsBusy && SelectedMessageTypeIndex >= 0 && !PropertyEditors.Any(p => p.HasErrors));
+        BuildSerializedCommand = new RelayCommand(
+            _ => BuildSerialized(),
+            _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
         RefreshVersionsCommand = new RelayCommand(async _ => await RefreshVersionsAsync(), _ => !IsBusy && SelectedFeed != null);
     }
 
@@ -155,18 +159,29 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public ObservableCollection<string> MessageTypes { get; }
+    public ObservableCollection<MessageTypeListItem> FilteredMessageTypes { get; }
 
-    private int _selectedMessageTypeIndex = -1;
-    public int SelectedMessageTypeIndex
+    public string MessageTypeFilter
     {
-        get => _selectedMessageTypeIndex;
+        get => _messageTypeFilter;
         set
         {
-            if (!SetField(ref _selectedMessageTypeIndex, value))
+            if (!SetField(ref _messageTypeFilter, value))
                 return;
+            OnPropertyChanged(nameof(MessageTypeFilter));
+            ApplyMessageTypeFilter();
+        }
+    }
+
+    public MessageTypeListItem? SelectedMessageTypeItem
+    {
+        get => _selectedMessageTypeItem;
+        set
+        {
+            if (!SetField(ref _selectedMessageTypeItem, value))
+                return;
+            OnPropertyChanged(nameof(SelectedMessageTypeItem));
             OnMessageTypeSelectionChanged();
-            OnPropertyChanged(nameof(SelectedMessageTypeIndex));
             ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
         }
     }
@@ -249,10 +264,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         IsBusy = true;
         SerializedPreview = string.Empty;
-        MessageTypes.Clear();
         PropertyEditors.Clear();
         _discovered.Clear();
-        SelectedMessageTypeIndex = -1;
+        FilteredMessageTypes.Clear();
+        MessageTypeFilter = string.Empty;
+        SelectedMessageTypeItem = null;
         _loadContext = null;
 
         try
@@ -304,9 +320,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             var discovered = MessageTypeDiscovery.Discover(messageLib, baseLib, BaseTypeFullName.Trim(), out var ctx);
             _loadContext = ctx;
             _discovered = discovered.ToList();
-
-            foreach (var d in _discovered)
-                MessageTypes.Add(d.DisplayName);
+            ApplyMessageTypeFilter();
 
             StatusText = discovered.Count == 0
                 ? "No concrete message types found in package A."
@@ -330,13 +344,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         PropertyEditors.Clear();
 
-        if (SelectedMessageTypeIndex < 0 || SelectedMessageTypeIndex >= _discovered.Count)
+        var selected = SelectedMessageTypeItem?.Discovered;
+        if (selected is null)
         {
             ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
             return;
         }
 
-        var type = _discovered[SelectedMessageTypeIndex].ClrType;
+        var type = selected.ClrType;
         foreach (var prop in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
         {
             if (!prop.CanRead)
@@ -358,10 +373,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
-            if (SelectedMessageTypeIndex < 0 || SelectedMessageTypeIndex >= _discovered.Count)
+            var selected = SelectedMessageTypeItem?.Discovered;
+            if (selected is null)
                 return;
 
-            var type = _discovered[SelectedMessageTypeIndex].ClrType;
+            var type = selected.ClrType;
             var instance = MessageInstanceBuilder.Build(type, PropertyEditors);
             SerializedPreview = _serializer.Serialize(instance, type);
             StatusText = "Serialized preview updated.";
@@ -369,6 +385,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             StatusText = "Serialization error: " + ex.Message;
+        }
+    }
+
+    private void ApplyMessageTypeFilter()
+    {
+        var previous = SelectedMessageTypeItem;
+        FilteredMessageTypes.Clear();
+
+        var filter = MessageTypeFilter.Trim();
+        foreach (var d in _discovered)
+        {
+            if (filter.Length == 0
+                || d.ShortName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            {
+                FilteredMessageTypes.Add(new MessageTypeListItem(d));
+            }
+        }
+
+        if (previous is not null)
+        {
+            var match = FilteredMessageTypes.FirstOrDefault(i => i.Discovered.ClrType == previous.Discovered.ClrType);
+            SelectedMessageTypeItem = match;
+        }
+        else
+        {
+            SelectedMessageTypeItem = null;
         }
     }
 

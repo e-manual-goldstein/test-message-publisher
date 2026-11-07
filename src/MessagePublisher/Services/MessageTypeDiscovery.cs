@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace MessagePublisher.Services;
 
-public sealed record DiscoveredMessageType(Type ClrType, string DisplayName);
+public sealed record DiscoveredMessageType(Type ClrType, string ShortName);
 
 /// <summary>
 /// Loads assemblies from package B (base type) and package A (message types) and discovers concrete message types.
@@ -56,11 +56,11 @@ public static class MessageTypeDiscovery
                 if (!HasUsableParameterlessConstructor(t))
                     continue;
 
-                result.Add(new DiscoveredMessageType(t, t.FullName ?? t.Name));
+                result.Add(new DiscoveredMessageType(t, t.Name));
             }
         }
 
-        return result.OrderBy(r => r.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
+        return result.OrderBy(r => r.ShortName, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     private static List<Assembly> LoadAssemblies(MessagePackageLoadContext ctx, IReadOnlyList<string> paths)
