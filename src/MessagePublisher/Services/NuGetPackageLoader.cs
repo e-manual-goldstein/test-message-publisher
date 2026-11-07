@@ -45,7 +45,8 @@ public static class NuGetPackageLoader
                 feedUrl,
                 username,
                 password ?? string.Empty,
-                isPasswordClearText: true);
+                isPasswordClearText: true,
+                validAuthenticationTypesText: null);
         }
 
         var providers = Repository.Provider.GetCoreV3();
