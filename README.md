@@ -16,14 +16,24 @@ dotnet build MessagePublisher.sln -c Release
 dotnet run --project src/MessagePublisher/MessagePublisher.csproj
 ```
 
+### Configuration (`appsettings.json`)
+
+Package ids and the base type full name are **fixed defaults** (not edited in the UI):
+
+| Setting | Meaning |
+|--------|---------|
+| `MessageTypesPackageId` | **Package A** — concrete message types |
+| `BaseTypePackageId` | **Package B** — assembly/NuGet package that defines the base type (referenced by A) |
+| `BaseTypeFullName` | CLR full name of the base message type in package B |
+| `PreferredFeedName` | Optional — matches a `packageSources` name from NuGet.config |
+
 ### Usage
 
-1. **Feed URL (v3)**: NuGet v3 service index, for example `https://api.nuget.org/v3/index.json`, or your Nexus v3 endpoint.
-2. **Package id** and **Version**: The package that contains your message DTOs.
-3. **Base type (full name)**: Full name of the abstract/interface/base class in that package, e.g. `MyCompany.Messages.MessageBase`.
-4. **User / Password** (optional): For authenticated Nexus feeds.
-5. Click **Load package** — assemblies under `lib/<TFM>` are resolved (prefer `net8.0` … `netstandard2.0` … `net45`).
-6. Pick a **message type** and fill fields; **Build serialized JSON** shows the payload string.
+1. **NuGet source**: Dropdown populated from **NuGet.config** (same hierarchy Visual Studio uses).
+2. **Versions**: Dropdowns query the selected feed for **Package A** and **Package B**.
+3. **Credentials** (optional): Override NuGet.config stored credentials if needed.
+4. Click **Load packages** — downloads B then A, loads both `lib/<TFM>` folders, discovers types in A assignable to the base from B.
+5. Pick a **message type** and fill fields; **Build serialized JSON** shows the payload string.
 
 ### Project layout
 

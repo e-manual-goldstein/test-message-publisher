@@ -10,14 +10,29 @@ public sealed class MessagePackageLoadContext : AssemblyLoadContext
 {
     private readonly string[] _probeDirectories;
 
-    public MessagePackageLoadContext(string libDirectory) : base(isCollectible: true)
+    public MessagePackageLoadContext(string libDirectory)
+        : this([libDirectory])
     {
-        if (string.IsNullOrEmpty(libDirectory))
-            throw new ArgumentException("Lib directory is required.", nameof(libDirectory));
+    }
 
-        // Probe lib folder and package root (for runtimes/ etc.) — keep simple: lib + parent extracted root.
-        var extractedRoot = Directory.GetParent(libDirectory)?.FullName ?? libDirectory;
-        _probeDirectories = [libDirectory, extractedRoot];
+    public MessagePackageLoadContext(IEnumerable<string> libDirectories) : base(isCollectible: true)
+    {
+        var probe = new List<string>();
+        foreach (var libDirectory in libDirectories)
+        {
+            if (string.IsNullOrEmpty(libDirectory))
+                continue;
+
+            probe.Add(libDirectory);
+            var extractedRoot = Directory.GetParent(libDirectory)?.FullName;
+            if (!string.IsNullOrEmpty(extractedRoot))
+                probe.Add(extractedRoot);
+        }
+
+        if (probe.Count == 0)
+            throw new ArgumentException("At least one lib directory is required.", nameof(libDirectories));
+
+        _probeDirectories = probe.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     protected override Assembly? Load(AssemblyName assemblyName)
@@ -33,7 +48,6 @@ public sealed class MessagePackageLoadContext : AssemblyLoadContext
                 return LoadFromAssemblyPath(path);
         }
 
-        // Framework / shared runtime assemblies (e.g. System.*) resolve from the default context.
         return null;
     }
 }

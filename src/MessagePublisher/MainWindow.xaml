@@ -8,8 +8,9 @@
         xmlns:conv="clr-namespace:MessagePublisher.Converters"
         mc:Ignorable="d"
         Title="Message Publisher"
-        Height="640"
-        Width="960">
+        Height="680"
+        Width="1000"
+        Loaded="MainWindow_OnLoaded">
   <Window.DataContext>
     <local:MainViewModel />
   </Window.DataContext>
@@ -28,34 +29,57 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <GroupBox Header="Package" Grid.Row="0" Margin="0,0,0,8" Padding="8">
+    <GroupBox Header="Packages (A = messages, B = base type)" Grid.Row="0" Margin="0,0,0,8" Padding="8">
       <Grid>
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="120" />
+          <ColumnDefinition Width="130" />
           <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="120" />
+          <ColumnDefinition Width="130" />
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Feed URL (v3)" Margin="0,0,8,4" />
-        <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding FeedUrl, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="NuGet source" Margin="0,0,8,6" />
+        <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3"
+                  ItemsSource="{Binding FeedSources}"
+                  SelectedItem="{Binding SelectedFeed, Mode=TwoWay}"
+                  DisplayMemberPath="Name"
+                  Margin="0,0,0,6"
+                  ToolTip="Enabled sources from NuGet.config (same as Visual Studio)" />
 
-        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Package id" Margin="0,0,8,4" />
-        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PackageId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,4" />
-        <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="Version" Margin="0,0,8,4" />
-        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding PackageVersion, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Package A (messages)" Margin="0,0,8,6" />
+        <TextBox Grid.Row="1" Grid.Column="1" IsReadOnly="True" Text="{Binding MessageTypesPackageId}" Margin="0,0,8,6"
+                 ToolTip="Default from appsettings.json" />
+        <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="Version" Margin="0,0,8,6" />
+        <ComboBox Grid.Row="1" Grid.Column="3"
+                  ItemsSource="{Binding MessagePackageVersions}"
+                  SelectedItem="{Binding SelectedMessagePackageVersion, Mode=TwoWay}"
+                  IsEditable="False"
+                  Margin="0,0,0,6" />
 
-        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Base type (full name)" Margin="0,0,8,0" />
-        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding BaseTypeFullName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
-        <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Text="User / Password" Margin="0,0,8,0" />
-        <StackPanel Grid.Row="2" Grid.Column="3" Orientation="Horizontal">
-          <TextBox Width="120" Margin="0,0,8,0" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" ToolTip="Optional Nexus user" />
-          <PasswordBox x:Name="PasswordBox" Width="160" PasswordChanged="PasswordBox_OnPasswordChanged" ToolTip="Optional Nexus password / token" />
+        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Package B (base)" Margin="0,0,8,6" />
+        <TextBox Grid.Row="2" Grid.Column="1" IsReadOnly="True" Text="{Binding BaseTypePackageId}" Margin="0,0,8,6"
+                 ToolTip="Default from appsettings.json" />
+        <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Text="Version" Margin="0,0,8,6" />
+        <ComboBox Grid.Row="2" Grid.Column="3"
+                  ItemsSource="{Binding BasePackageVersions}"
+                  SelectedItem="{Binding SelectedBasePackageVersion, Mode=TwoWay}"
+                  IsEditable="False"
+                  Margin="0,0,0,6" />
+
+        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Base type name" Margin="0,0,8,0" />
+        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding BaseTypeFullName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
+        <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" Text="Credentials override" Margin="0,0,8,0" />
+        <StackPanel Grid.Row="3" Grid.Column="3" Orientation="Horizontal">
+          <TextBox Width="110" Margin="0,0,8,0" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                   ToolTip="Optional; NuGet.config credentials are used when blank" />
+          <PasswordBox x:Name="PasswordBox" Width="140" PasswordChanged="PasswordBox_OnPasswordChanged" />
+          <Button Margin="12,0,0,0" Padding="8,2" Content="Refresh versions" Command="{Binding RefreshVersionsCommand}" />
         </StackPanel>
       </Grid>
     </GroupBox>
@@ -68,8 +92,8 @@
       </Grid.ColumnDefinitions>
 
       <DockPanel Grid.Column="0">
-        <Button DockPanel.Dock="Bottom" Margin="0,8,0,0" Padding="8,4" Content="Load package"
-                Command="{Binding LoadPackageCommand}" IsEnabled="{Binding IsBusy, Converter={StaticResource InvBool}}" />
+        <Button DockPanel.Dock="Bottom" Margin="0,8,0,0" Padding="8,4" Content="Load packages"
+                Command="{Binding LoadPackageCommand}" />
         <StackPanel DockPanel.Dock="Top">
           <TextBlock Text="Message types" FontWeight="SemiBold" Margin="0,0,0,4" />
           <ListBox ItemsSource="{Binding MessageTypes}" SelectedIndex="{Binding SelectedMessageTypeIndex, Mode=TwoWay}" MinHeight="200" />
