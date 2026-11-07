@@ -1,3 +1,4 @@
+using System.Collections;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -188,7 +189,7 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
             return false;
         if (t.Any(c => char.IsWhiteSpace(c)))
             return false;
-        return t.All(c => char.IsLetterOrDigit(c) or c is '+' or '/' or '=');
+        return t.All(c => char.IsLetterOrDigit(c) || c is '+' or '/' or '=');
     }
 
     private void ValidateCurrent()
