@@ -1,3 +1,4 @@
+#if !IMPORT_PRIVATE_NAMESPACE
 namespace MessagePublisher.Services;
 
 /// <summary>
@@ -7,9 +8,7 @@ public static class ModuleCompositionRoot
 {
     public static IMessageSerializer CreateSerializer()
     {
-        IEventBus eventBus = new EventBus();
-        ITextSerialiser textSerialiser = new XmlTextSerialiser();
-        IMessageBuilder messageBuilder = new MessageBuilder(textSerialiser, eventBus);
-        return new ModuleMessageSerializer(messageBuilder);
+        throw new NotImplementedException();
     }
 }
+#endif
