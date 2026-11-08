@@ -8,7 +8,6 @@ using System.Windows.Input;
 using MessagePublisher.Configuration;
 using MessagePublisher.Services;
 using MessagePublisher.ViewModels;
-using Microsoft.Extensions.Configuration;
 
 namespace MessagePublisher;
 
@@ -25,13 +24,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public MainViewModel()
     {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .Build();
-
+        
         var settings = new MessagePublisherSettings();
-        configuration.GetSection(MessagePublisherSettings.SectionName).Bind(settings);
         _baseTypeFullName = settings.BaseTypeFullName;
 
         BaseTypeFullName = _baseTypeFullName;
