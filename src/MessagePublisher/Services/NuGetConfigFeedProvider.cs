@@ -1,6 +1,7 @@
 using System.Reflection;
 using NuGet.Configuration;
 using NuGet.Protocol;
+using NuGet.Protocol.Core.Types;
 
 namespace MessagePublisher.Services;
 
