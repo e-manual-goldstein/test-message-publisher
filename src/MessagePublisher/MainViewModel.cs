@@ -1,6 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -14,17 +15,7 @@ namespace MessagePublisher;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly IMessageSerializer _serializer = ModuleCompositionRoot.CreateSerializer();
-    private readonly NuGetPackageSettings _packageSettings;
-    private MessagePackageLoadContext? _loadContext;
-
-    private NuGetFeedOption? _selectedFeed;
-    private string _messageTypesPackageId = "";
-    private string _baseTypePackageId = "";
-    private string _baseTypeFullName = "";
-    private string? _selectedMessagePackageVersion;
-    private string? _selectedBasePackageVersion;
-    private string _username = "";
-    private string _password = "";
+    private readonly string _baseTypeFullName;
 
     private string _statusText = "Ready.";
     private string _serializedPreview = "";
@@ -35,104 +26,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public MainViewModel()
     {
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .Build();
 
-        _packageSettings = new NuGetPackageSettings();
-        configuration.GetSection(NuGetPackageSettings.SectionName).Bind(_packageSettings);
+        var settings = new MessagePublisherSettings();
+        configuration.GetSection(MessagePublisherSettings.SectionName).Bind(settings);
+        _baseTypeFullName = settings.BaseTypeFullName;
 
-        MessageTypesPackageId = _packageSettings.MessageTypesPackageId;
-        BaseTypePackageId = _packageSettings.BaseTypePackageId;
-        BaseTypeFullName = _packageSettings.BaseTypeFullName;
+        BaseTypeFullName = _baseTypeFullName;
 
-        FeedSources = new ObservableCollection<NuGetFeedOption>();
-        MessagePackageVersions = new ObservableCollection<string>();
-        BasePackageVersions = new ObservableCollection<string>();
         FilteredMessageTypes = new ObservableCollection<MessageTypeListItem>();
         PropertyEditors = new ObservableCollection<PropertyEditorViewModel>();
 
-        LoadPackageCommand = new RelayCommand(async _ => await LoadPackageAsync(), _ => CanLoadPackages());
-        LoadReferencedModulesCommand = new RelayCommand(_ => LoadReferencedModules(), _ => CanLoadReferencedModules());
+        LoadMessageTypesCommand = new RelayCommand(_ => LoadMessageTypes(), _ => !IsBusy);
         BuildSerializedCommand = new RelayCommand(
             _ => BuildSerialized(),
             _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
-        RefreshVersionsCommand = new RelayCommand(async _ => await RefreshVersionsAsync(), _ => !IsBusy && SelectedFeed != null);
     }
 
-    public ObservableCollection<NuGetFeedOption> FeedSources { get; }
-
-    public NuGetFeedOption? SelectedFeed
-    {
-        get => _selectedFeed;
-        set
-        {
-            if (!SetField(ref _selectedFeed, value))
-                return;
-            OnPropertyChanged(nameof(SelectedFeed));
-            ((RelayCommand)LoadPackageCommand).RaiseCanExecuteChanged();
-            _ = RefreshVersionsAsync();
-        }
-    }
-
-    /// <summary>Package A — message type definitions.</summary>
-    public string MessageTypesPackageId
-    {
-        get => _messageTypesPackageId;
-        set { if (SetField(ref _messageTypesPackageId, value)) OnPropertyChanged(nameof(MessageTypesPackageId)); }
-    }
-
-    /// <summary>Package B — base type assembly.</summary>
-    public string BaseTypePackageId
-    {
-        get => _baseTypePackageId;
-        set { if (SetField(ref _baseTypePackageId, value)) OnPropertyChanged(nameof(BaseTypePackageId)); }
-    }
-
-    public ObservableCollection<string> MessagePackageVersions { get; }
-    public ObservableCollection<string> BasePackageVersions { get; }
-
-    public string? SelectedMessagePackageVersion
-    {
-        get => _selectedMessagePackageVersion;
-        set
-        {
-            if (!SetField(ref _selectedMessagePackageVersion, value))
-                return;
-            OnPropertyChanged(nameof(SelectedMessagePackageVersion));
-            ((RelayCommand)LoadPackageCommand).RaiseCanExecuteChanged();
-        }
-    }
-
-    public string? SelectedBasePackageVersion
-    {
-        get => _selectedBasePackageVersion;
-        set
-        {
-            if (!SetField(ref _selectedBasePackageVersion, value))
-                return;
-            OnPropertyChanged(nameof(SelectedBasePackageVersion));
-            ((RelayCommand)LoadPackageCommand).RaiseCanExecuteChanged();
-        }
-    }
-
-    public string BaseTypeFullName
-    {
-        get => _baseTypeFullName;
-        set { if (SetField(ref _baseTypeFullName, value)) OnPropertyChanged(nameof(BaseTypeFullName)); }
-    }
-
-    public string Username
-    {
-        get => _username;
-        set { if (SetField(ref _username, value)) OnPropertyChanged(nameof(Username)); }
-    }
-
-    public string Password
-    {
-        get => _password;
-        set { if (SetField(ref _password, value)) OnPropertyChanged(nameof(Password)); }
-    }
+    public string BaseTypeFullName { get; }
 
     public string StatusText
     {
@@ -154,10 +67,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (!SetField(ref _isBusy, value))
                 return;
             OnPropertyChanged(nameof(IsBusy));
-            ((RelayCommand)LoadPackageCommand).RaiseCanExecuteChanged();
-            ((RelayCommand)LoadReferencedModulesCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)LoadMessageTypesCommand).RaiseCanExecuteChanged();
             ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
-            ((RelayCommand)RefreshVersionsCommand).RaiseCanExecuteChanged();
         }
     }
 
@@ -192,81 +103,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<PropertyEditorViewModel> PropertyEditors { get; }
 
-    public ICommand LoadPackageCommand { get; }
-    public ICommand LoadReferencedModulesCommand { get; }
+    public ICommand LoadMessageTypesCommand { get; }
     public ICommand BuildSerializedCommand { get; }
-    public ICommand RefreshVersionsCommand { get; }
 
-    public async Task InitializeAsync()
+    public void Initialize()
     {
-        try
-        {
-            FeedSources.Clear();
-            foreach (var feed in NuGetConfigFeedProvider.GetEnabledFeeds())
-                FeedSources.Add(feed);
-
-            if (FeedSources.Count == 0)
-            {
-                StatusText = "No enabled NuGet sources found in NuGet.config.";
-                return;
-            }
-
-            var preferred = _packageSettings.PreferredFeedName;
-            SelectedFeed = FeedSources.FirstOrDefault(f =>
-                               string.Equals(f.Name, preferred, StringComparison.OrdinalIgnoreCase))
-                           ?? FeedSources[0];
-
-            StatusText = $"Loaded {FeedSources.Count} NuGet source(s) from NuGet.config.";
-            await RefreshVersionsAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusText = "Startup error: " + ex.Message;
-        }
+        LoadMessageTypes();
     }
 
-    public async Task RefreshVersionsAsync()
-    {
-        if (SelectedFeed is null)
-            return;
-
-        IsBusy = true;
-        try
-        {
-            StatusText = "Querying package versions from feed...";
-
-            var messageTask = NuGetPackageVersionProvider.GetVersionsAsync(SelectedFeed, MessageTypesPackageId);
-            var baseTask = NuGetPackageVersionProvider.GetVersionsAsync(SelectedFeed, BaseTypePackageId);
-            await Task.WhenAll(messageTask, baseTask);
-
-            ReplaceCollection(MessagePackageVersions, messageTask.Result);
-            ReplaceCollection(BasePackageVersions, baseTask.Result);
-
-            SelectedMessagePackageVersion = PickVersion(SelectedMessagePackageVersion, MessagePackageVersions);
-            SelectedBasePackageVersion = PickVersion(SelectedBasePackageVersion, BasePackageVersions);
-
-            StatusText = $"Versions loaded (A: {MessagePackageVersions.Count}, B: {BasePackageVersions.Count}).";
-        }
-        catch (Exception ex)
-        {
-            StatusText = "Version query error: " + ex.Message;
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    private bool CanLoadPackages() =>
-        !IsBusy
-        && SelectedFeed != null
-        && !string.IsNullOrWhiteSpace(SelectedMessagePackageVersion)
-        && !string.IsNullOrWhiteSpace(SelectedBasePackageVersion);
-
-    private bool CanLoadReferencedModules() =>
-        !IsBusy && !string.IsNullOrWhiteSpace(BaseTypeFullName);
-
-    private void LoadReferencedModules()
+    private void LoadMessageTypes()
     {
         IsBusy = true;
         SerializedPreview = string.Empty;
@@ -275,20 +120,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
         FilteredMessageTypes.Clear();
         MessageTypeFilter = string.Empty;
         SelectedMessageTypeItem = null;
-        _loadContext = null;
 
         try
         {
-            if (string.IsNullOrWhiteSpace(BaseTypeFullName))
-                throw new InvalidOperationException("Base type full name is required.");
+            if (string.IsNullOrWhiteSpace(_baseTypeFullName))
+                throw new InvalidOperationException("Base type full name is required in appsettings.json.");
 
-            var discovered = ReferencedModuleDiscovery.Discover(BaseTypeFullName.Trim());
+            var discovered = ReferencedModuleDiscovery.Discover(_baseTypeFullName.Trim());
             _discovered = discovered.ToList();
             ApplyMessageTypeFilter();
 
             StatusText = discovered.Count == 0
                 ? "No message types found in referenced MessageTypes project."
-                : $"Loaded {discovered.Count} type(s) from referenced modules (BaseMessageModule, MessageTypes, Serialisation).";
+                : $"Loaded {discovered.Count} message type(s). Select one to edit.";
         }
         catch (Exception ex)
         {
@@ -297,91 +141,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
         finally
         {
             IsBusy = false;
-        }
-    }
-
-    private async Task LoadPackageAsync()
-    {
-        IsBusy = true;
-        SerializedPreview = string.Empty;
-        PropertyEditors.Clear();
-        _discovered.Clear();
-        FilteredMessageTypes.Clear();
-        MessageTypeFilter = string.Empty;
-        SelectedMessageTypeItem = null;
-        _loadContext = null;
-
-        try
-        {
-            if (SelectedFeed is null)
-                throw new InvalidOperationException("Select a NuGet feed.");
-            if (string.IsNullOrWhiteSpace(MessageTypesPackageId) || string.IsNullOrWhiteSpace(BaseTypePackageId))
-                throw new InvalidOperationException("Package ids must be configured in appsettings.json.");
-            if (string.IsNullOrWhiteSpace(SelectedMessagePackageVersion) || string.IsNullOrWhiteSpace(SelectedBasePackageVersion))
-                throw new InvalidOperationException("Select a version for both packages.");
-            if (string.IsNullOrWhiteSpace(BaseTypeFullName))
-                throw new InvalidOperationException("Base type full name is required.");
-
-            var cacheRoot = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "MessagePublisher",
-                "packages");
-
-            var baseRoot = Path.Combine(cacheRoot, Sanitize(BaseTypePackageId), Sanitize(SelectedBasePackageVersion!));
-            var messageRoot = Path.Combine(cacheRoot, Sanitize(MessageTypesPackageId), Sanitize(SelectedMessagePackageVersion!));
-
-            var user = string.IsNullOrWhiteSpace(Username) ? null : Username.Trim();
-            var pass = string.IsNullOrWhiteSpace(Password) ? null : Password;
-
-            StatusText = "Downloading package B (base type)...";
-            var extractedBase = await NuGetPackageLoader.DownloadAndExtractAsync(
-                SelectedFeed,
-                BaseTypePackageId.Trim(),
-                SelectedBasePackageVersion!,
-                baseRoot,
-                user,
-                pass);
-
-            StatusText = "Downloading package A (message types)...";
-            var extractedMessages = await NuGetPackageLoader.DownloadAndExtractAsync(
-                SelectedFeed,
-                MessageTypesPackageId.Trim(),
-                SelectedMessagePackageVersion!,
-                messageRoot,
-                user,
-                pass);
-
-            var baseLib = PackageAssemblyResolver.ResolveLibDirectory(extractedBase)
-                ?? throw new InvalidOperationException("No lib/TFM folder in base type package B.");
-            var messageLib = PackageAssemblyResolver.ResolveLibDirectory(extractedMessages)
-                ?? throw new InvalidOperationException("No lib/TFM folder in message types package A.");
-
-            StatusText = "Discovering message types...";
-            var discovered = MessageTypeDiscovery.Discover(messageLib, baseLib, BaseTypeFullName.Trim(), out var ctx)
-                .ToList();
-            _loadContext = ctx;
-
-            foreach (var local in ReferencedModuleDiscovery.Discover(BaseTypeFullName.Trim()))
-            {
-                if (discovered.All(d => d.ClrType.FullName != local.ClrType.FullName))
-                    discovered.Add(local);
-            }
-
-            _discovered = discovered;
-            ApplyMessageTypeFilter();
-
-            StatusText = discovered.Count == 0
-                ? "No concrete message types found in package A or referenced modules."
-                : $"Found {discovered.Count} message type(s). Select one to edit.";
-        }
-        catch (Exception ex)
-        {
-            StatusText = "Error: " + ex.Message;
-        }
-        finally
-        {
-            IsBusy = false;
-            ((RelayCommand)LoadPackageCommand).RaiseCanExecuteChanged();
         }
     }
 
@@ -460,29 +219,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             SelectedMessageTypeItem = null;
         }
-    }
-
-    private static void ReplaceCollection(ObservableCollection<string> target, IReadOnlyList<string> values)
-    {
-        target.Clear();
-        foreach (var v in values)
-            target.Add(v);
-    }
-
-    private static string? PickVersion(string? current, ObservableCollection<string> available)
-    {
-        if (available.Count == 0)
-            return null;
-        if (!string.IsNullOrWhiteSpace(current) && available.Contains(current))
-            return current;
-        return available[0];
-    }
-
-    private static string Sanitize(string s)
-    {
-        foreach (var c in Path.GetInvalidFileNameChars())
-            s = s.Replace(c, '_');
-        return s.Trim();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

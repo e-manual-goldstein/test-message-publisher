@@ -1,3 +1,5 @@
+using System;
+
 namespace Serialisation;
 
 public sealed class MessageBuilder : IMessageBuilder
@@ -13,7 +15,8 @@ public sealed class MessageBuilder : IMessageBuilder
 
     public string BuildPayload(BaseMessageModule.BaseMessage message)
     {
-        ArgumentNullException.ThrowIfNull(message);
+        if (message == null)
+            throw new ArgumentNullException(nameof(message));
 
         var runtimeType = message.GetType();
         _eventBus.Publish("Message.PayloadBuilding", new { runtimeType.Name, message.MessageId });

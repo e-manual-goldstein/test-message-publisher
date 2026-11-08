@@ -12,7 +12,7 @@ namespace MessagePublisher.ViewModels;
 /// </summary>
 public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPropertyChanged
 {
-    private static readonly char[] HexSeparators = [' ', '-', ','];
+    private static readonly char[] HexSeparators = { ' ', '-', ',' };
 
     private string _valueText = string.Empty;
     private bool? _boolValue;

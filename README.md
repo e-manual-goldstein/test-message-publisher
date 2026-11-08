@@ -2,21 +2,23 @@
 
 ## Message Publisher (WPF)
 
-Desktop tool to **load a NuGet package** from a **v3 feed** (for example Nexus), discover **message types** that inherit a configured **base type**, edit scalar properties in a **dynamic form**, and **serialize** the result to **JSON** (MSMQ send is left for a later milestone).
+Desktop tool to discover **message types** that inherit a configured **base type**, edit scalar properties in a **dynamic form**, and **serialize** the payload via the in-repo **Serialisation** module (XML). MSMQ send is left for a later milestone.
 
 ### Requirements
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (Windows)
-- Target: **`net8.0-windows`** (WPF)
+- Windows with **.NET Framework 4.5.2** or later (all projects target **`net452`**)
+- [.NET SDK](https://dotnet.microsoft.com/download) (to build SDK-style projects targeting net452) on Windows, or Visual Studio 2019+
 
 ### Solution layout (stand-in for private packages)
 
 | Project | Role |
 |---------|------|
-| [`src/BaseMessageModule`](src/BaseMessageModule) | Package **B** — abstract `BaseMessage` |
-| [`src/MessageTypes`](src/MessageTypes) | Package **A** — concrete message DTOs (references BaseMessageModule) |
-| [`src/Serialisation`](src/Serialisation) | Package **C** — `EventBus`, `MessageBuilder`, `XmlTextSerialiser` (+ interfaces) |
+| [`src/BaseMessageModule`](src/BaseMessageModule) | Abstract `BaseMessage` |
+| [`src/MessageTypes`](src/MessageTypes) | Concrete message DTOs (references BaseMessageModule) |
+| [`src/Serialisation`](src/Serialisation) | `EventBus`, `MessageBuilder`, `XmlTextSerialiser` (+ interfaces) |
 | [`src/MessagePublisher`](src/MessagePublisher) | WPF host — **project-references all three** (via [`Directory.Build.props`](src/MessagePublisher/Directory.Build.props)) |
+
+Shared **`src/Directory.Build.props`** sets `TargetFramework` **net452** for every project under `src/`.
 
 Namespaces (`BaseMessageModule`, `MessageTypes`, `Serialisation`) are placeholders; replace with your corporate names via `GlobalUsings` when you swap in real assemblies.
 
@@ -27,40 +29,30 @@ dotnet build MessagePublisher.sln -c Release
 dotnet run --project src/MessagePublisher/MessagePublisher.csproj
 ```
 
-### Configuration (`appsettings.json`)
+(On Windows; WPF requires a Windows environment.)
 
-Package ids and the base type full name are **fixed defaults** (not edited in the UI):
+### Configuration (`appsettings.json`)
 
 | Setting | Meaning |
 |--------|---------|
-| `MessageTypesPackageId` | **Package A** — concrete message types |
-| `BaseTypePackageId` | **Package B** — assembly/NuGet package that defines the base type (referenced by A) |
-| `BaseTypeFullName` | CLR full name of the base message type in package B |
-| `PreferredFeedName` | Optional — matches a `packageSources` name from NuGet.config |
+| `MessagePublisher:BaseTypeFullName` | CLR full name of the base message type (default `BaseMessageModule.BaseMessage`) |
 
 ### Usage
 
-1. **NuGet source**: Dropdown populated from **NuGet.config** (same hierarchy Visual Studio uses).
-2. **Versions**: Dropdowns query the selected feed for **Package A** and **Package B**.
-3. **Credentials** (optional): Override NuGet.config stored credentials if needed.
-4. For local development (no NuGet), click **Load referenced modules** — discovers types from the in-repo `MessageTypes` project against `BaseMessageModule.BaseMessage`.
-5. When packages are published to your feed, use **Load packages (NuGet)** — downloads B then A; merges in any referenced-module types not already found.
-6. Pick a **message type** and fill fields; **Build serialized payload** uses `MessageBuilder` / `XmlTextSerialiser` from the **Serialisation** project (XML wire format).
+1. Start the app — message types load automatically from the referenced **MessageTypes** project.
+2. Use **Reload message types** if needed after rebuilding module projects.
+3. Pick a **message type**, edit fields, then **Build serialized payload** (`MessageBuilder` / `XmlTextSerialiser`).
 
 ### Project layout
 
-- [`src/MessagePublisher/Services/NuGetPackageLoader.cs`](src/MessagePublisher/Services/NuGetPackageLoader.cs) — download `.nupkg` via NuGet client APIs.
-- [`src/MessagePublisher/Services/PackageAssemblyResolver.cs`](src/MessagePublisher/Services/PackageAssemblyResolver.cs) — choose `lib/` TFM folder.
-- [`src/MessagePublisher/Services/MessagePackageLoadContext.cs`](src/MessagePublisher/Services/MessagePackageLoadContext.cs) — collectible `AssemblyLoadContext`.
-- [`src/MessagePublisher/Services/MessageTypeDiscovery.cs`](src/MessagePublisher/Services/MessageTypeDiscovery.cs) — find concrete assignable types.
+- [`src/MessagePublisher/Services/ReferencedModuleDiscovery.cs`](src/MessagePublisher/Services/ReferencedModuleDiscovery.cs) — find concrete types in referenced MessageTypes.
 - [`src/MessagePublisher/ViewModels/PropertyEditorViewModel.cs`](src/MessagePublisher/ViewModels/PropertyEditorViewModel.cs) — parsing and validation per property.
 - [`src/MessagePublisher/Services/ModuleCompositionRoot.cs`](src/MessagePublisher/Services/ModuleCompositionRoot.cs) — wires Serialisation module types for the host.
 - [`src/Serialisation/XmlTextSerialiser.cs`](src/Serialisation/XmlTextSerialiser.cs) — XML payload format.
 
 ### Notes
 
-- **Wire format**: XML via `XmlTextSerialiser` (stand-in for proprietary package C). `JsonMessageSerializer` remains in the repo only as an unused reference implementation.
-- **net45-only packages**: Often load at runtime on .NET 8; if discovery fails, confirm the base type name and dependencies in the package.
+- **Wire format**: XML via `XmlTextSerialiser` (stand-in for proprietary serialisation package).
 
 ---
 

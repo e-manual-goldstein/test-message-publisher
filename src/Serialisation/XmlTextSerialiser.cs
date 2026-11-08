@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
@@ -8,7 +10,8 @@ public sealed class XmlTextSerialiser : ITextSerialiser
 {
     public string Serialise(object message, Type messageType)
     {
-        ArgumentNullException.ThrowIfNull(message);
+        if (message == null)
+            throw new ArgumentNullException(nameof(message));
 
         var serializer = new XmlSerializer(messageType);
         var settings = new XmlWriterSettings
