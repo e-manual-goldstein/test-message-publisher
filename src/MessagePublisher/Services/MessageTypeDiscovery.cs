@@ -14,7 +14,8 @@ public static class MessageTypeDiscovery
         string messageTypesLibDirectory,
         string baseTypeLibDirectory,
         string baseTypeFullName,
-        out MessagePackageLoadContext loadContext)
+        out MessagePackageLoadContext loadContext,
+        out IReadOnlyList<Assembly> loadedAssemblies)
     {
         if (string.IsNullOrWhiteSpace(baseTypeFullName))
             throw new ArgumentException("Base type full name is required.", nameof(baseTypeFullName));
@@ -59,6 +60,12 @@ public static class MessageTypeDiscovery
                 result.Add(new DiscoveredMessageType(t, t.Name));
             }
         }
+
+        loadedAssemblies = loadedBase
+            .Concat(loadedMessages)
+            .GroupBy(a => a.FullName)
+            .Select(g => g.First())
+            .ToList();
 
         return result.OrderBy(r => r.ShortName, StringComparer.OrdinalIgnoreCase).ToList();
     }
