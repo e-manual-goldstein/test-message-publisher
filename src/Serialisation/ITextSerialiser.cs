@@ -1,3 +1,5 @@
+using System;
+
 namespace Serialisation;
 
 public interface ITextSerialiser

@@ -7,7 +7,7 @@ public sealed class EventBus : IEventBus
 {
     public void Publish(string eventName, object? payload = null)
     {
-        // Deliberately lightweight: hook point for real auditing/telemetry later.
-        _ = (eventName, payload);
+        //DO Nothing
+        //_ = (eventName, payload);
     }
 }
