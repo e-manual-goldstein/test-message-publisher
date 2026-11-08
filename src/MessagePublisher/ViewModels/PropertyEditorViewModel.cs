@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -12,11 +14,11 @@ namespace MessagePublisher.ViewModels;
 /// </summary>
 public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPropertyChanged
 {
-    private static readonly char[] HexSeparators = [' ', '-', ','];
+    private static readonly char[] HexSeparators = { ' ', '-', ',' };
 
     private string _valueText = string.Empty;
     private bool? _boolValue;
-    private readonly Dictionary<string, string> _errors = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _errors = new Dictionary<string, string>(StringComparer.Ordinal);
 
     public PropertyEditorViewModel(PropertyInfo property)
     {
@@ -90,9 +92,9 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
 
     public object? ParseToPropertyType(Type targetType)
     {
-        var (underlying, isNullable) = Nullable.GetUnderlyingType(targetType) is { } u
-            ? (u, true)
-            : (targetType, false);
+        var nullableUnderlying = Nullable.GetUnderlyingType(targetType);
+        var underlying = nullableUnderlying ?? targetType;
+        var isNullable = nullableUnderlying != null;
 
         if (EditorKind == PropertyEditorKind.Boolean)
         {
@@ -106,36 +108,57 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
 
         try
         {
-            return underlying switch
-            {
-                _ when underlying == typeof(string) => ValueText,
-                _ when underlying == typeof(bool) => ParseBool(ValueText),
-                _ when underlying == typeof(byte) => byte.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(sbyte) => sbyte.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(short) => short.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(ushort) => ushort.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(int) => int.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(uint) => uint.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(long) => long.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(ulong) => ulong.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(decimal) => decimal.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(double) => double.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(float) => float.Parse(ValueText.Trim(), CultureInfo.InvariantCulture),
-                _ when underlying == typeof(Guid) => Guid.Parse(ValueText.Trim()),
-                _ when underlying == typeof(DateTime) => DateTime.Parse(ValueText.Trim(), CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeLocal | DateTimeStyles.AllowWhiteSpaces),
-                _ when underlying == typeof(DateTimeOffset) => DateTimeOffset.Parse(ValueText.Trim(), CultureInfo.InvariantCulture,
-                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AllowWhiteSpaces),
-                _ when underlying == typeof(byte[]) => ParseByteArray(ValueText),
-                _ when underlying.IsEnum => Enum.Parse(underlying, ValueText.Trim(), ignoreCase: true),
-                _ => throw new NotSupportedException($"Unsupported property type: {underlying.FullName}")
-            };
+            return ParseUnderlyingValue(underlying);
         }
         catch (Exception ex)
         {
             SetError(nameof(ValueText), ex.Message);
             throw;
         }
+    }
+
+    private object ParseUnderlyingValue(Type underlying)
+    {
+        if (underlying == typeof(string))
+            return ValueText;
+        if (underlying == typeof(bool))
+            return ParseBool(ValueText);
+        if (underlying == typeof(byte))
+            return byte.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(sbyte))
+            return sbyte.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(short))
+            return short.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(ushort))
+            return ushort.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(int))
+            return int.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(uint))
+            return uint.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(long))
+            return long.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(ulong))
+            return ulong.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(decimal))
+            return decimal.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(double))
+            return double.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(float))
+            return float.Parse(ValueText.Trim(), CultureInfo.InvariantCulture);
+        if (underlying == typeof(Guid))
+            return Guid.Parse(ValueText.Trim());
+        if (underlying == typeof(DateTime))
+            return DateTime.Parse(ValueText.Trim(), CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeLocal | DateTimeStyles.AllowWhiteSpaces);
+        if (underlying == typeof(DateTimeOffset))
+            return DateTimeOffset.Parse(ValueText.Trim(), CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AllowWhiteSpaces);
+        if (underlying == typeof(byte[]))
+            return ParseByteArray(ValueText);
+        if (underlying.IsEnum)
+            return Enum.Parse(underlying, ValueText.Trim(), ignoreCase: true);
+
+        throw new NotSupportedException($"Unsupported property type: {underlying.FullName}");
     }
 
     private static object ParseBool(string s)
@@ -152,9 +175,8 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
     {
         var t = text.Trim();
         if (t.Length == 0)
-            return Array.Empty<byte>();
+            return new byte[0];
 
-        // Base64
         if (IsLikelyBase64(t))
         {
             try
@@ -167,8 +189,7 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
             }
         }
 
-        // Hex: optional 0x, separators
-        var hex = t.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? t[2..] : t;
+        var hex = t.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? t.Substring(2) : t;
         var sep = new HashSet<char>(HexSeparators);
         hex = new string(hex.Where(c => !sep.Contains(c)).ToArray());
         if (hex.Length % 2 != 0)
@@ -177,7 +198,7 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
         var bytes = new byte[hex.Length / 2];
         for (var i = 0; i < bytes.Length; i++)
         {
-            bytes[i] = byte.Parse(hex.AsSpan(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            bytes[i] = byte.Parse(hex.Substring(i * 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         }
 
         return bytes;
@@ -187,9 +208,9 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
     {
         if (t.Length < 4)
             return false;
-        if (t.Any(c => char.IsWhiteSpace(c)))
+        if (t.Any(char.IsWhiteSpace))
             return false;
-        return t.All(c => char.IsLetterOrDigit(c) || c is '+' or '/' or '=');
+        return t.All(c => char.IsLetterOrDigit(c) || c == '+' || c == '/' || c == '=');
     }
 
     private void ValidateCurrent()
@@ -250,7 +271,8 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
     {
         if (propertyName is null)
             return _errors.Values.ToList();
-        return _errors.TryGetValue(propertyName, out var e) ? new[] { e } : Array.Empty<string>();
+        string e;
+        return _errors.TryGetValue(propertyName, out e) ? new[] { e } : new string[0];
     }
 
     private void SetError(string propertyName, string message)

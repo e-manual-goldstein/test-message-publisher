@@ -2,3 +2,5 @@ node_modules/
 **/.vs/
 **/obj/
 **/bin/
+/src/MessagePublisher/Directory.Packages.props
+/src/MessagePublisher/LocalUsings.cs

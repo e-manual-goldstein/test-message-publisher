@@ -8,8 +8,8 @@
         xmlns:conv="clr-namespace:MessagePublisher.Converters"
         mc:Ignorable="d"
         Title="Message Publisher"
-        Height="680"
-        Width="1000"
+        Height="640"
+        Width="960"
         Loaded="MainWindow_OnLoaded">
   <Window.DataContext>
     <local:MainViewModel />
@@ -29,58 +29,16 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <GroupBox Header="Packages (A = messages, B = base type)" Grid.Row="0" Margin="0,0,0,8" Padding="8">
+    <GroupBox Header="Message modules (project references)" Grid.Row="0" Margin="0,0,0,8" Padding="8">
       <Grid>
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="130" />
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="130" />
+          <ColumnDefinition Width="140" />
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
-        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="NuGet source" Margin="0,0,8,6" />
-        <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3"
-                  ItemsSource="{Binding FeedSources}"
-                  SelectedItem="{Binding SelectedFeed, Mode=TwoWay}"
-                  DisplayMemberPath="Name"
-                  Margin="0,0,0,6"
-                  ToolTip="Enabled sources from NuGet.config (same as Visual Studio)" />
-
-        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Package A (messages)" Margin="0,0,8,6" />
-        <TextBox Grid.Row="1" Grid.Column="1" IsReadOnly="True" Text="{Binding MessageTypesPackageId}" Margin="0,0,8,6"
-                 ToolTip="Default from appsettings.json" />
-        <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Text="Version" Margin="0,0,8,6" />
-        <ComboBox Grid.Row="1" Grid.Column="3"
-                  ItemsSource="{Binding MessagePackageVersions}"
-                  SelectedItem="{Binding SelectedMessagePackageVersion, Mode=TwoWay}"
-                  IsEditable="False"
-                  Margin="0,0,0,6" />
-
-        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Package B (base)" Margin="0,0,8,6" />
-        <TextBox Grid.Row="2" Grid.Column="1" IsReadOnly="True" Text="{Binding BaseTypePackageId}" Margin="0,0,8,6"
-                 ToolTip="Default from appsettings.json" />
-        <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" Text="Version" Margin="0,0,8,6" />
-        <ComboBox Grid.Row="2" Grid.Column="3"
-                  ItemsSource="{Binding BasePackageVersions}"
-                  SelectedItem="{Binding SelectedBasePackageVersion, Mode=TwoWay}"
-                  IsEditable="False"
-                  Margin="0,0,0,6" />
-
-        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Base type name" Margin="0,0,8,0" />
-        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding BaseTypeFullName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
-        <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" Text="Credentials override" Margin="0,0,8,0" />
-        <StackPanel Grid.Row="3" Grid.Column="3" Orientation="Horizontal">
-          <TextBox Width="110" Margin="0,0,8,0" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
-                   ToolTip="Optional; NuGet.config credentials are used when blank" />
-          <PasswordBox x:Name="PasswordBox" Width="140" PasswordChanged="PasswordBox_OnPasswordChanged" />
-          <Button Margin="12,0,0,0" Padding="8,2" Content="Refresh versions" Command="{Binding RefreshVersionsCommand}" />
-        </StackPanel>
+        <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Base type" Margin="0,0,8,0" />
+        <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                   Text="{Binding BaseTypeFullName, Mode=OneWay}"
+                   ToolTip="From appsettings.json" />
       </Grid>
     </GroupBox>
 
@@ -113,14 +71,14 @@
           <TextBox Text="{Binding MessageTypeFilter, UpdateSourceTrigger=PropertyChanged}"
                    ToolTip="Types whose short name contains this text" />
         </StackPanel>
-        <Button Grid.Row="4" Padding="8,4" Content="Load packages" Command="{Binding LoadPackageCommand}" />
+        <Button Grid.Row="4" Padding="8,4" Content="Reload message types" Command="{Binding LoadMessageTypesCommand}" />
       </Grid>
 
       <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#EEE" />
 
       <DockPanel Grid.Column="2">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-          <Button Padding="10,4" Content="Build serialized JSON" Command="{Binding BuildSerializedCommand}" />
+          <Button Padding="10,4" Content="Build serialized payload" Command="{Binding BuildSerializedCommand}" />
           <TextBlock VerticalAlignment="Center" Margin="12,0,0,0" Foreground="Gray" FontSize="11"
                      Text="MSMQ send is not wired yet; this preview is the payload string step." />
         </StackPanel>
@@ -200,7 +158,7 @@
       </DockPanel>
     </Grid>
 
-    <GroupBox Header="Serialized payload (JSON)" Grid.Row="2" Margin="0,8,0,0" Padding="8">
+    <GroupBox Header="Serialized payload (XML via Serialisation module)" Grid.Row="2" Margin="0,8,0,0" Padding="8">
       <TextBox Text="{Binding SerializedPreview, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
                TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MinHeight="100" FontFamily="Consolas" FontSize="12" />
     </GroupBox>

@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    Peripheral MSBuild imports: merged into MessagePublisher before the .csproj body.
+    Keeps module wiring out of MessagePublisher.csproj (swap paths here when pointing at real packages).
+  -->
+  <PropertyGroup>
+    <ModuleProjectsRoot>$(MSBuildThisFileDirectory)..</ModuleProjectsRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(ModuleProjectsRoot)\BaseMessageModule\BaseMessageModule.csproj" />
+    <ProjectReference Include="$(ModuleProjectsRoot)\MessageTypes\MessageTypes.csproj" />
+    <ProjectReference Include="$(ModuleProjectsRoot)\Serialisation\Serialisation.csproj" />
+  </ItemGroup>
+</Project>

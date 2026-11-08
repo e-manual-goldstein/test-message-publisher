@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>MessageTypes</RootNamespace>
+    <AssemblyName>MessageTypes</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BaseMessageModule\BaseMessageModule.csproj" />
+  </ItemGroup>
+</Project>
