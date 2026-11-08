@@ -120,7 +120,7 @@
 
       <DockPanel Grid.Column="2">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-          <Button Padding="10,4" Content="Build serialized JSON" Command="{Binding BuildSerializedCommand}" />
+          <Button Padding="10,4" Content="Build serialized payload" Command="{Binding BuildSerializedCommand}" />
           <TextBlock VerticalAlignment="Center" Margin="12,0,0,0" Foreground="Gray" FontSize="11"
                      Text="MSMQ send is not wired yet; this preview is the payload string step." />
         </StackPanel>
@@ -200,7 +200,7 @@
       </DockPanel>
     </Grid>
 
-    <GroupBox Header="Serialized payload (JSON)" Grid.Row="2" Margin="0,8,0,0" Padding="8">
+    <GroupBox Header="Serialized payload" Grid.Row="2" Margin="0,8,0,0" Padding="8">
       <TextBox Text="{Binding SerializedPreview, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
                TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MinHeight="100" FontFamily="Consolas" FontSize="12" />
     </GroupBox>

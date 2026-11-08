@@ -13,7 +13,9 @@ namespace MessagePublisher;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    private readonly JsonMessageSerializer _serializer = new();
+    private readonly SerializationPluginSettings _serializationPlugin;
+    private readonly DependencyInjectionSettings _dependencyInjection;
+    private IMessageSerializer _serializer = new JsonMessageSerializer();
     private readonly NuGetPackageSettings _packageSettings;
     private MessagePackageLoadContext? _loadContext;
 
@@ -41,6 +43,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         _packageSettings = new NuGetPackageSettings();
         configuration.GetSection(NuGetPackageSettings.SectionName).Bind(_packageSettings);
+
+        _serializationPlugin = new SerializationPluginSettings();
+        configuration.GetSection(SerializationPluginSettings.SectionName).Bind(_serializationPlugin);
+
+        _dependencyInjection = new DependencyInjectionSettings();
+        configuration.GetSection(DependencyInjectionSettings.SectionName).Bind(_dependencyInjection);
 
         MessageTypesPackageId = _packageSettings.MessageTypesPackageId;
         BaseTypePackageId = _packageSettings.BaseTypePackageId;
@@ -317,14 +325,34 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 ?? throw new InvalidOperationException("No lib/TFM folder in message types package A.");
 
             StatusText = "Discovering message types...";
-            var discovered = MessageTypeDiscovery.Discover(messageLib, baseLib, BaseTypeFullName.Trim(), out var ctx);
+            var discovered = MessageTypeDiscovery.Discover(
+                messageLib,
+                baseLib,
+                BaseTypeFullName.Trim(),
+                out var ctx,
+                out var loadedAssemblies);
             _loadContext = ctx;
             _discovered = discovered.ToList();
+
+            var (serializer, serializerNote) = MessageSerializerFactory.Create(
+                _serializationPlugin,
+                _dependencyInjection,
+                loadedAssemblies);
+            _serializer = serializer;
+
             ApplyMessageTypeFilter();
 
-            StatusText = discovered.Count == 0
-                ? "No concrete message types found in package A."
-                : $"Found {discovered.Count} message type(s). Select one to edit.";
+            if (discovered.Count == 0)
+            {
+                StatusText = serializerNote is null
+                    ? "No concrete message types found in package A."
+                    : "No concrete message types found in package A. " + serializerNote;
+            }
+            else
+            {
+                StatusText = $"Found {discovered.Count} message type(s). Select one to edit."
+                    + (serializerNote is null ? "" : " " + serializerNote);
+            }
         }
         catch (Exception ex)
         {
