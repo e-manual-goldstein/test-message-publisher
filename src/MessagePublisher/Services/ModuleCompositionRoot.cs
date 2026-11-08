@@ -1,5 +1,3 @@
-using Serialisation;
-
 namespace MessagePublisher.Services;
 
 /// <summary>

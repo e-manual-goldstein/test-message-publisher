@@ -1,6 +1,4 @@
 using System;
-using BaseMessageModule;
-using Serialisation;
 
 namespace MessagePublisher.Services;
 
