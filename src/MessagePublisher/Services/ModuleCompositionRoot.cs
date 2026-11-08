@@ -1,4 +1,4 @@
-#if !IMPORT_PRIVATE_NAMESPACE
+#if !IMPORT_PRIVATE_NAMESPACES
 namespace MessagePublisher.Services;
 
 /// <summary>
