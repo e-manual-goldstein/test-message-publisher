@@ -13,7 +13,7 @@ namespace MessagePublisher;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    private readonly JsonMessageSerializer _serializer = new();
+    private readonly IMessageSerializer _serializer = ModuleCompositionRoot.CreateSerializer();
     private readonly NuGetPackageSettings _packageSettings;
     private MessagePackageLoadContext? _loadContext;
 
@@ -53,6 +53,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         PropertyEditors = new ObservableCollection<PropertyEditorViewModel>();
 
         LoadPackageCommand = new RelayCommand(async _ => await LoadPackageAsync(), _ => CanLoadPackages());
+        LoadReferencedModulesCommand = new RelayCommand(_ => LoadReferencedModules(), _ => CanLoadReferencedModules());
         BuildSerializedCommand = new RelayCommand(
             _ => BuildSerialized(),
             _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
@@ -154,6 +155,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 return;
             OnPropertyChanged(nameof(IsBusy));
             ((RelayCommand)LoadPackageCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)LoadReferencedModulesCommand).RaiseCanExecuteChanged();
             ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
             ((RelayCommand)RefreshVersionsCommand).RaiseCanExecuteChanged();
         }
@@ -191,6 +193,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<PropertyEditorViewModel> PropertyEditors { get; }
 
     public ICommand LoadPackageCommand { get; }
+    public ICommand LoadReferencedModulesCommand { get; }
     public ICommand BuildSerializedCommand { get; }
     public ICommand RefreshVersionsCommand { get; }
 
@@ -260,6 +263,43 @@ public sealed class MainViewModel : INotifyPropertyChanged
         && !string.IsNullOrWhiteSpace(SelectedMessagePackageVersion)
         && !string.IsNullOrWhiteSpace(SelectedBasePackageVersion);
 
+    private bool CanLoadReferencedModules() =>
+        !IsBusy && !string.IsNullOrWhiteSpace(BaseTypeFullName);
+
+    private void LoadReferencedModules()
+    {
+        IsBusy = true;
+        SerializedPreview = string.Empty;
+        PropertyEditors.Clear();
+        _discovered.Clear();
+        FilteredMessageTypes.Clear();
+        MessageTypeFilter = string.Empty;
+        SelectedMessageTypeItem = null;
+        _loadContext = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(BaseTypeFullName))
+                throw new InvalidOperationException("Base type full name is required.");
+
+            var discovered = ReferencedModuleDiscovery.Discover(BaseTypeFullName.Trim());
+            _discovered = discovered.ToList();
+            ApplyMessageTypeFilter();
+
+            StatusText = discovered.Count == 0
+                ? "No message types found in referenced MessageTypes project."
+                : $"Loaded {discovered.Count} type(s) from referenced modules (BaseMessageModule, MessageTypes, Serialisation).";
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Error: " + ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     private async Task LoadPackageAsync()
     {
         IsBusy = true;
@@ -317,13 +357,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 ?? throw new InvalidOperationException("No lib/TFM folder in message types package A.");
 
             StatusText = "Discovering message types...";
-            var discovered = MessageTypeDiscovery.Discover(messageLib, baseLib, BaseTypeFullName.Trim(), out var ctx);
+            var discovered = MessageTypeDiscovery.Discover(messageLib, baseLib, BaseTypeFullName.Trim(), out var ctx)
+                .ToList();
             _loadContext = ctx;
-            _discovered = discovered.ToList();
+
+            foreach (var local in ReferencedModuleDiscovery.Discover(BaseTypeFullName.Trim()))
+            {
+                if (discovered.All(d => d.ClrType.FullName != local.ClrType.FullName))
+                    discovered.Add(local);
+            }
+
+            _discovered = discovered;
             ApplyMessageTypeFilter();
 
             StatusText = discovered.Count == 0
-                ? "No concrete message types found in package A."
+                ? "No concrete message types found in package A or referenced modules."
                 : $"Found {discovered.Count} message type(s). Select one to edit.";
         }
         catch (Exception ex)
