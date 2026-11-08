@@ -10,8 +10,6 @@ namespace MessagePublisher.Services;
 /// </summary>
 public static class ReferencedModuleDiscovery
 {
-    private static readonly Assembly MessageTypesAssembly = typeof(OrderPlacedMessage).Assembly;
-
     public static IReadOnlyList<DiscoveredMessageType> Discover(string baseTypeFullName)
     {
         if (string.IsNullOrWhiteSpace(baseTypeFullName))
@@ -26,7 +24,7 @@ public static class ReferencedModuleDiscovery
         Type[] types;
         try
         {
-            types = MessageTypesAssembly.GetTypes();
+            types = GetAllTypesFromReferencedAssemblies().ToArray();
         }
         catch (ReflectionTypeLoadException ex)
         {
@@ -46,6 +44,12 @@ public static class ReferencedModuleDiscovery
         }
 
         return result.OrderBy(r => r.ShortName, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static IEnumerable<Type> GetAllTypesFromReferencedAssemblies()
+    {
+        //@CURSOR Implement this method. Get the Types from all assemblies currently referenced by the application
+        
     }
 
     private static Type? ResolveBaseType(string baseTypeFullName)
