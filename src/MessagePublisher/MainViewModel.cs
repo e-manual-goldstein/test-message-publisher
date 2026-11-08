@@ -204,7 +204,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         foreach (var d in _discovered)
         {
             if (filter.Length == 0
-                || d.ShortName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                || d.ShortName.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 FilteredMessageTypes.Add(new MessageTypeListItem(d));
             }
