@@ -2,7 +2,7 @@ using BaseMessageModule;
 
 namespace MessageTypes;
 
-public sealed class OrderPlacedMessage : BaseMessage
+public sealed class OrderPlacedMessage : Event
 {
     public string OrderId { get; set; } = "";
 

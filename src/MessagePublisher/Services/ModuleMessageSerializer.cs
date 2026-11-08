@@ -16,10 +16,10 @@ public sealed class ModuleMessageSerializer : IMessageSerializer
 
     public string Serialize(object instance, Type runtimeType)
     {
-        if (instance is not BaseMessage baseMessage)
+        if (instance is not Event baseMessage)
         {
             throw new InvalidOperationException(
-                $"Expected {typeof(BaseMessage).FullName}; got {runtimeType.FullName}.");
+                $"Expected {typeof(Event).FullName}; got {runtimeType.FullName}.");
         }
 
         return _messageBuilder.BuildPayload(baseMessage);

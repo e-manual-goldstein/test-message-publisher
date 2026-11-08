@@ -50,14 +50,14 @@ public static class ReferencedModuleDiscovery
 
     private static Type? ResolveBaseType(string baseTypeFullName)
     {
-        if (string.Equals(baseTypeFullName, nameof(BaseMessage), StringComparison.Ordinal)
-            || baseTypeFullName == typeof(BaseMessage).FullName)
+        if (string.Equals(baseTypeFullName, nameof(Event), StringComparison.Ordinal)
+            || baseTypeFullName == typeof(Event).FullName)
         {
-            return typeof(BaseMessage);
+            return typeof(Event);
         }
 
         return Type.GetType(baseTypeFullName, throwOnError: false, ignoreCase: false)
-               ?? typeof(BaseMessage).Assembly.GetType(baseTypeFullName, throwOnError: false, ignoreCase: false);
+               ?? typeof(Event).Assembly.GetType(baseTypeFullName, throwOnError: false, ignoreCase: false);
     }
 
     private static bool HasUsableParameterlessConstructor(Type t) =>

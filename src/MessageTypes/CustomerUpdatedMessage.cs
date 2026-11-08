@@ -2,7 +2,7 @@ using BaseMessageModule;
 
 namespace MessageTypes;
 
-public sealed class CustomerUpdatedMessage : BaseMessage
+public sealed class CustomerUpdatedMessage : Event
 {
     public string CustomerId { get; set; } = "";
 

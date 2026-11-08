@@ -13,7 +13,7 @@ public sealed class MessageBuilder : IMessageBuilder
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
     }
 
-    public string BuildPayload(BaseMessageModule.BaseMessage message)
+    public string BuildPayload(BaseMessageModule.Event message)
     {
         if (message == null)
             throw new ArgumentNullException(nameof(message));
