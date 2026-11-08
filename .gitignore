@@ -3,3 +3,4 @@ node_modules/
 **/obj/
 **/bin/
 /src/MessagePublisher/Directory.Packages.props
+/src/MessagePublisher/LocalUsings.cs
