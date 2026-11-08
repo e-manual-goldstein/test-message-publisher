@@ -13,7 +13,7 @@ Desktop tool to discover **message types** that inherit a configured **base type
 
 | Project | Role |
 |---------|------|
-| [`src/BaseMessageModule`](src/BaseMessageModule) | Abstract `BaseMessage` |
+| [`src/BaseMessageModule`](src/BaseMessageModule) | Abstract `Event` |
 | [`src/MessageTypes`](src/MessageTypes) | Concrete message DTOs (references BaseMessageModule) |
 | [`src/Serialisation`](src/Serialisation) | `EventBus`, `MessageBuilder`, `XmlTextSerialiser` (+ interfaces) |
 | [`src/MessagePublisher`](src/MessagePublisher) | WPF host — **project-references all three** (via [`Directory.Build.props`](src/MessagePublisher/Directory.Build.props)) |
@@ -35,7 +35,7 @@ dotnet run --project src/MessagePublisher/MessagePublisher.csproj
 
 | Setting | Meaning |
 |--------|---------|
-| `MessagePublisher:BaseTypeFullName` | CLR full name of the base message type (default `BaseMessageModule.BaseMessage`) |
+| `MessagePublisher:BaseTypeFullName` | CLR full name of the base message type (default `BaseMessageModule.Event`) |
 
 ### Usage
 
