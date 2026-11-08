@@ -8,11 +8,15 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Loaded += (_, _) =>
+    }
+
+    private async void MainWindow_OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
         {
-            if (DataContext is MainViewModel vm)
-                vm.Password = PasswordBox.Password;
-        };
+            vm.Password = PasswordBox.Password;
+            await vm.InitializeAsync();
+        }
     }
 
     private void PasswordBox_OnPasswordChanged(object sender, RoutedEventArgs e)

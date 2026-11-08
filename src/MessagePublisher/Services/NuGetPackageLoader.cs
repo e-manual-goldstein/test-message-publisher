@@ -13,41 +13,47 @@ namespace MessagePublisher.Services;
 /// </summary>
 public static class NuGetPackageLoader
 {
-    /// <param name="feedUrl">V3 service index URL, e.g. https://your-nexus/repository/nuget-org/v3/index.json</param>
-    /// <param name="packageId">Package id.</param>
-    /// <param name="version">SemVer version string.</param>
-    /// <param name="outputDirectory">Folder to extract into (created if missing).</param>
-    /// <param name="username">Optional feed username.</param>
-    /// <param name="password">Optional feed password or API token.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    public static async Task<string> DownloadAndExtractAsync(
-        string feedUrl,
+    public static Task<string> DownloadAndExtractAsync(
+        NuGetFeedOption feed,
         string packageId,
         string version,
         string outputDirectory,
-        string? username,
-        string? password,
+        string? credentialOverrideUser,
+        string? credentialOverridePassword,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(feedUrl))
-            throw new ArgumentException("Feed URL is required.", nameof(feedUrl));
+        var source = feed.Source;
+        if (!string.IsNullOrWhiteSpace(credentialOverrideUser))
+        {
+            source = new PackageSource(source.Source, source.Name, isEnabled: true, isOfficial: false)
+            {
+                Credentials = new PackageSourceCredential(
+                    source.Source,
+                    credentialOverrideUser,
+                    credentialOverridePassword ?? string.Empty,
+                    isPasswordClearText: true,
+                    validAuthenticationTypesText: null)
+            };
+        }
+
+        return DownloadAndExtractAsync(source, packageId, version, outputDirectory, cancellationToken);
+    }
+
+    public static async Task<string> DownloadAndExtractAsync(
+        PackageSource source,
+        string packageId,
+        string version,
+        string outputDirectory,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(source.Source))
+            throw new ArgumentException("Package source URL is required.", nameof(source));
         if (string.IsNullOrWhiteSpace(packageId))
             throw new ArgumentException("Package id is required.", nameof(packageId));
         if (!NuGetVersion.TryParse(version, out var nuGetVersion))
             throw new ArgumentException($"Invalid NuGet version: {version}", nameof(version));
 
         Directory.CreateDirectory(outputDirectory);
-
-        var source = new PackageSource(feedUrl);
-        if (!string.IsNullOrEmpty(username))
-        {
-            source.Credentials = new PackageSourceCredential(
-                feedUrl,
-                username,
-                password ?? string.Empty,
-                isPasswordClearText: true,
-                validAuthenticationTypesText: null);
-        }
 
         var providers = Repository.Provider.GetCoreV3();
         var repository = new SourceRepository(source, providers);

@@ -3,47 +3,39 @@ using System.Reflection;
 
 namespace MessagePublisher.Services;
 
-public sealed record DiscoveredMessageType(Type ClrType, string DisplayName);
+public sealed record DiscoveredMessageType(Type ClrType, string ShortName);
 
 /// <summary>
-/// Loads assemblies from a package lib folder and discovers concrete message types assignable to a base type.
+/// Loads assemblies from package B (base type) and package A (message types) and discovers concrete message types.
 /// </summary>
 public static class MessageTypeDiscovery
 {
     public static IReadOnlyList<DiscoveredMessageType> Discover(
-        string libDirectory,
+        string messageTypesLibDirectory,
+        string baseTypeLibDirectory,
         string baseTypeFullName,
         out MessagePackageLoadContext loadContext)
     {
         if (string.IsNullOrWhiteSpace(baseTypeFullName))
             throw new ArgumentException("Base type full name is required.", nameof(baseTypeFullName));
 
-        loadContext = new MessagePackageLoadContext(libDirectory);
-        var paths = PackageAssemblyResolver.GetAssemblyPaths(libDirectory);
+        loadContext = new MessagePackageLoadContext([baseTypeLibDirectory, messageTypesLibDirectory]);
 
-        var loaded = new List<Assembly>();
-        foreach (var path in paths)
-        {
-            try
-            {
-                loaded.Add(loadContext.LoadFromAssemblyPath(path));
-            }
-            catch (BadImageFormatException)
-            {
-                // Native/managed mix or wrong architecture — skip
-            }
-            catch (FileLoadException)
-            {
-                // Skip unloadable
-            }
-        }
+        var basePaths = PackageAssemblyResolver.GetAssemblyPaths(baseTypeLibDirectory);
+        var messagePaths = PackageAssemblyResolver.GetAssemblyPaths(messageTypesLibDirectory);
 
-        var baseType = ResolveBaseType(loaded, baseTypeFullName)
-            ?? throw new InvalidOperationException(
-                $"Could not resolve base type '{baseTypeFullName}' in any loaded assembly. Check spelling and that the base type is in this package.");
+        var loadedBase = LoadAssemblies(loadContext, basePaths);
+        var loadedMessages = LoadAssemblies(loadContext, messagePaths);
 
+        var baseType = ResolveBaseType(loadedBase, baseTypeFullName)
+                       ?? ResolveBaseType(loadedBase.Concat(loadedMessages).ToList(), baseTypeFullName)
+                       ?? throw new InvalidOperationException(
+                           $"Could not resolve base type '{baseTypeFullName}'. Ensure package B is loaded and the name matches.");
+
+        var messageAssemblies = new HashSet<Assembly>(loadedMessages);
         var result = new List<DiscoveredMessageType>();
-        foreach (var asm in loaded)
+
+        foreach (var asm in messageAssemblies)
         {
             Type[] types;
             try
@@ -64,16 +56,35 @@ public static class MessageTypeDiscovery
                 if (!HasUsableParameterlessConstructor(t))
                     continue;
 
-                result.Add(new DiscoveredMessageType(t, t.FullName ?? t.Name));
+                result.Add(new DiscoveredMessageType(t, t.Name));
             }
         }
 
-        return result.OrderBy(r => r.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
+        return result.OrderBy(r => r.ShortName, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static List<Assembly> LoadAssemblies(MessagePackageLoadContext ctx, IReadOnlyList<string> paths)
+    {
+        var loaded = new List<Assembly>();
+        foreach (var path in paths)
+        {
+            try
+            {
+                loaded.Add(ctx.LoadFromAssemblyPath(path));
+            }
+            catch (BadImageFormatException)
+            {
+            }
+            catch (FileLoadException)
+            {
+            }
+        }
+
+        return loaded;
     }
 
     private static Type? ResolveBaseType(IReadOnlyList<Assembly> assemblies, string baseTypeFullName)
     {
-        // Allow simple full name; if comma present, try Type.GetType style.
         foreach (var asm in assemblies)
         {
             var t = asm.GetType(baseTypeFullName, throwOnError: false, ignoreCase: false);
