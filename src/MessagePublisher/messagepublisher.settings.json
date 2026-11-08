@@ -1,0 +1,16 @@
+{
+  "serializationPlugin": {
+    "serializerTypeFullName": "",
+    "serializerMethodName": "",
+    "useStaticMethod": false
+  },
+  "dependencyInjection": {
+    "services": [
+      {
+        "serviceTypeFullName": "MyCompany.Messages.IWireSerializerContext",
+        "implementationTypeFullName": "MyCompany.Messages.WireSerializerContext",
+        "lifetime": "singleton"
+      }
+    ]
+  }
+}

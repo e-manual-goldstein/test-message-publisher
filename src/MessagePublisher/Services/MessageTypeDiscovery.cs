@@ -13,7 +13,8 @@ public static class MessageTypeDiscovery
     public static IReadOnlyList<DiscoveredMessageType> Discover(
         string libDirectory,
         string baseTypeFullName,
-        out MessagePackageLoadContext loadContext)
+        out MessagePackageLoadContext loadContext,
+        out IReadOnlyList<Assembly> loadedAssemblies)
     {
         if (string.IsNullOrWhiteSpace(baseTypeFullName))
             throw new ArgumentException("Base type full name is required.", nameof(baseTypeFullName));
@@ -68,6 +69,7 @@ public static class MessageTypeDiscovery
             }
         }
 
+        loadedAssemblies = loaded;
         return result.OrderBy(r => r.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
     }
 

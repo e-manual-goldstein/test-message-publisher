@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using MessagePublisher.Configuration;
 using MessagePublisher.Services;
 using MessagePublisher.ViewModels;
 
@@ -11,7 +12,8 @@ namespace MessagePublisher;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    private readonly JsonMessageSerializer _serializer = new();
+    private readonly MessagePublisherSettings _settings = SettingsLoader.Load();
+    private IMessageSerializer _serializer = new JsonMessageSerializer();
     private MessagePackageLoadContext? _loadContext;
 
     private string _feedUrl = "https://api.nuget.org/v3/index.json";
@@ -161,16 +163,31 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             StatusText = $"Loaded lib from: {lib}. Discovering types...";
 
-            var discovered = MessageTypeDiscovery.Discover(lib, BaseTypeFullName.Trim(), out var ctx);
+            var discovered = MessageTypeDiscovery.Discover(
+                lib,
+                BaseTypeFullName.Trim(),
+                out var ctx,
+                out var loadedAssemblies);
             _loadContext = ctx;
             _discovered = discovered.ToList();
+
+            var (serializer, serializerNote) = MessageSerializerFactory.Create(_settings, loadedAssemblies);
+            _serializer = serializer;
 
             foreach (var d in _discovered)
                 MessageTypes.Add(d.DisplayName);
 
-            StatusText = discovered.Count == 0
-                ? "No concrete message types found."
-                : $"Found {discovered.Count} message type(s). Select one to edit.";
+            if (discovered.Count == 0)
+            {
+                StatusText = serializerNote is null
+                    ? "No concrete message types found."
+                    : "No concrete message types found. " + serializerNote;
+            }
+            else
+            {
+                StatusText = $"Found {discovered.Count} message type(s). Select one to edit."
+                    + (serializerNote is null ? "" : " " + serializerNote);
+            }
         }
         catch (Exception ex)
         {
