@@ -16,7 +16,7 @@ Desktop tool to **load a NuGet package** from a **v3 feed** (for example Nexus),
 | [`src/BaseMessageModule`](src/BaseMessageModule) | Package **B** — abstract `BaseMessage` |
 | [`src/MessageTypes`](src/MessageTypes) | Package **A** — concrete message DTOs (references BaseMessageModule) |
 | [`src/Serialisation`](src/Serialisation) | Package **C** — `EventBus`, `MessageBuilder`, `XmlTextSerialiser` (+ interfaces) |
-| [`src/MessagePublisher`](src/MessagePublisher) | WPF host — **project-references all three** |
+| [`src/MessagePublisher`](src/MessagePublisher) | WPF host — **project-references all three** (via [`Directory.Build.props`](src/MessagePublisher/Directory.Build.props)) |
 
 Namespaces (`BaseMessageModule`, `MessageTypes`, `Serialisation`) are placeholders; replace with your corporate names via `GlobalUsings` when you swap in real assemblies.
 
