@@ -36,7 +36,9 @@
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Base type" Margin="0,0,8,0" />
-        <TextBox Grid.Column="1" IsReadOnly="True" Text="{Binding BaseTypeFullName}" ToolTip="From appsettings.json" />
+        <TextBlock Grid.Column="1" VerticalAlignment="Center"
+                   Text="{Binding BaseTypeFullName, Mode=OneWay}"
+                   ToolTip="From appsettings.json" />
       </Grid>
     </GroupBox>
 
