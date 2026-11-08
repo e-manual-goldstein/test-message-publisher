@@ -12,4 +12,9 @@
     <PackageReference Include="NuGet.Protocol" Version="6.11.0" />
     <PackageReference Include="NuGet.Packaging" Version="6.11.0" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="messagepublisher.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
