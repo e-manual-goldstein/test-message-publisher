@@ -5,9 +5,9 @@ namespace MessagePublisher
 {
     internal class MessageConfigurator
     {
-        internal static MessageConfiguration GetConfiguration(IEnumerable<PropertyEditorViewModel> propertyEditors)
+        internal static MessageLabels GetAddtionalMessageLabels(IEnumerable<PropertyEditorViewModel> propertyEditors)
         {
-            //Implement this method to populate the properties of MessageConfiguration
+            //Implement this method to populate the properties of MessageLabels
         }
     }
 }

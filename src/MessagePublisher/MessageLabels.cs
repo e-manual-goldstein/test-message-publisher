@@ -1,6 +1,6 @@
 ﻿namespace MessagePublisher
 {
-    public class MessageConfiguration
+    public class MessageLabels
     {
         public string ProcessName { get; set; }
 

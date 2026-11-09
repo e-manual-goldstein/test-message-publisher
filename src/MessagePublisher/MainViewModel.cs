@@ -169,7 +169,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             var type = selected.ClrType;
             var instance = MessageInstanceBuilder.Build(type, PropertyEditors);
-            SerializedPreview = _serializer.Serialize(instance, MessageConfigurator.GetConfiguration(PropertyEditors));
+            SerializedPreview = _serializer.Serialize(instance, MessageConfigurator.GetAddtionalMessageLabels(PropertyEditors));
             StatusText = "Serialized preview updated.";
         }
         catch (Exception ex)
