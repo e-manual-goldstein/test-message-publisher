@@ -33,7 +33,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public MainViewModel()
     {
         _serviceCollection = new AppServiceCollection();
-        ViewModelServiceConfigurator.Configure(_serviceCollection);
+        ServiceConfigurator.Configure(_serviceCollection);
         ServiceProvider = _serviceCollection.BuildServiceProvider();
 
         FilteredMessageTypes = new ObservableCollection<MessageTypeListItem>();
