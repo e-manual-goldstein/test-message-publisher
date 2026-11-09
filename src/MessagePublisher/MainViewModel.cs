@@ -14,8 +14,7 @@ namespace MessagePublisher;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly IMessageSerializer _serializer = ModuleCompositionRoot.CreateSerializer();
-    private readonly string _baseTypeFullName;
-
+    
     private string _statusText = "Ready.";
     private string _serializedPreview = "";
     private bool _isBusy;
@@ -25,11 +24,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public MainViewModel()
     {
         
-        var settings = new MessagePublisherSettings();
-        _baseTypeFullName = settings.BaseTypeFullName;
-
-        BaseTypeFullName = _baseTypeFullName;
-
         FilteredMessageTypes = new ObservableCollection<MessageTypeListItem>();
         PropertyEditors = new ObservableCollection<PropertyEditorViewModel>();
 
@@ -38,8 +32,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
             _ => BuildSerialized(),
             _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
     }
-
-    public string BaseTypeFullName { get; }
 
     public string StatusText
     {
@@ -117,10 +109,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         try
         {
-            if (string.IsNullOrWhiteSpace(_baseTypeFullName))
-                throw new InvalidOperationException("Base type full name is required in appsettings.json.");
-
-            var discovered = ReferencedModuleDiscovery.Discover(_baseTypeFullName.Trim());
+            var discovered = ReferencedModuleDiscovery.Discover(typeof(Event).FullName);
             _discovered = discovered.ToList();
             ApplyMessageTypeFilter();
 
@@ -180,7 +169,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             var type = selected.ClrType;
             var instance = MessageInstanceBuilder.Build(type, PropertyEditors);
-            SerializedPreview = _serializer.Serialize(instance, type);
+            SerializedPreview = _serializer.Serialize(instance, MessageConfigurator.GetConfiguration(PropertyEditors));
             StatusText = "Serialized preview updated.";
         }
         catch (Exception ex)
