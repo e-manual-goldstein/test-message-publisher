@@ -1,4 +1,6 @@
 #if !IMPORT_PRIVATE_NAMESPACES
+using MessagePublisher.Services;
+
 namespace MessagePublisher.Composition;
 
 /// <summary>
@@ -8,7 +10,8 @@ internal static class ServiceConfigurator
 {
     internal static void Configure(AppServiceCollection services)
     {
-        // Registrations go here.
+        services.AddSingleton<IMSMQSenderService, MSMQSendPort>();
+        services.AddSingleton<IMsgRouteEngine, MsgRouteEngine>();
     }
 }
 #endif

@@ -8,28 +8,30 @@ namespace MessagePublisher.Composition;
 /// </summary>
 public sealed class AppServiceCollection
 {
-    private readonly Dictionary<Type, Func<object>> _registrations = new Dictionary<Type, Func<object>>();
+    private readonly Dictionary<Type, ServiceDescriptor> _descriptors = new Dictionary<Type, ServiceDescriptor>();
 
     public void AddSingleton<TService>(TService instance) where TService : class
     {
         if (instance == null)
             throw new ArgumentNullException(nameof(instance));
 
-        _registrations[typeof(TService)] = () => instance;
+        _descriptors[typeof(TService)] = ServiceDescriptor.ForInstance(typeof(TService), instance);
+    }
+
+    public void AddSingleton<TService>() where TService : class
+    {
+        AddSingleton<TService, TService>();
     }
 
     public void AddSingleton<TService, TImplementation>()
         where TService : class
-        where TImplementation : class, TService, new()
+        where TImplementation : class, TService
     {
-        object? instance = null;
-        _registrations[typeof(TService)] = () =>
-        {
-            if (instance == null)
-                instance = new TImplementation();
-            return instance;
-        };
+        _descriptors[typeof(TService)] =
+            ServiceDescriptor.ForImplementation(typeof(TService), typeof(TImplementation));
     }
 
-    public AppServiceProvider BuildServiceProvider() => new AppServiceProvider(_registrations);
+    internal IReadOnlyDictionary<Type, ServiceDescriptor> Descriptors => _descriptors;
+
+    public AppServiceProvider BuildServiceProvider() => new AppServiceProvider(_descriptors);
 }
