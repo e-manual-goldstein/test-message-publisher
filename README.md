@@ -36,6 +36,7 @@ dotnet run --project src/MessagePublisher/MessagePublisher.csproj
 | Setting | Meaning |
 |--------|---------|
 | `MessagePublisher:BaseTypeFullName` | CLR full name of the base message type (default `BaseMessageModule.Event`) |
+| `MSMQAddresses` | Routing key → MSMQ queue path for `MsgRouteEngine.RouteMessage` |
 
 ### Usage
 
@@ -45,6 +46,8 @@ dotnet run --project src/MessagePublisher/MessagePublisher.csproj
 
 ### Project layout
 
+- [`src/MessagePublisher/Services/MsgRouteEngine.cs`](src/MessagePublisher/Services/MsgRouteEngine.cs) — resolve routing key to queue and invoke send port.
+- [`src/MessagePublisher/Services/MSMQSendPort.cs`](src/MessagePublisher/Services/MSMQSendPort.cs) — MSMQ send (stub).
 - [`src/MessagePublisher/Services/ReferencedModuleDiscovery.cs`](src/MessagePublisher/Services/ReferencedModuleDiscovery.cs) — find concrete types in referenced MessageTypes.
 - [`src/MessagePublisher/ViewModels/PropertyEditorViewModel.cs`](src/MessagePublisher/ViewModels/PropertyEditorViewModel.cs) — parsing and validation per property.
 - [`src/MessagePublisher/Services/ModuleCompositionRoot.cs`](src/MessagePublisher/Services/ModuleCompositionRoot.cs) — wires Serialisation module types for the host.
