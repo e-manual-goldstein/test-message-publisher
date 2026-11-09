@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using MessagePublisher.Configuration;
 using MessagePublisher.Services;
 using MessagePublisher.ViewModels;
 
@@ -20,8 +19,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private bool _isBusy;
     private string _messageTypeFilter = "";
     private MessageTypeListItem? _selectedMessageTypeItem;
-
-    public string BaseTypeFullName => typeof(Event).FullName;
+    private string _processName = "";
+    private string _routingKey = "";
 
     public MainViewModel()
     {
@@ -32,6 +31,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
         BuildSerializedCommand = new RelayCommand(
             _ => BuildSerialized(),
             _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
+    }
+
+    public string ProcessName
+    {
+        get => _processName;
+        set
+        {
+            if (SetField(ref _processName, value))
+                OnPropertyChanged(nameof(ProcessName));
+        }
+    }
+
+    public string RoutingKey
+    {
+        get => _routingKey;
+        set
+        {
+            if (SetField(ref _routingKey, value))
+                OnPropertyChanged(nameof(RoutingKey));
+        }
     }
 
     public string StatusText
@@ -170,7 +189,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             var type = selected.ClrType;
             var instance = MessageInstanceBuilder.Build(type, PropertyEditors);
-            SerializedPreview = _serializer.Serialize(instance, MessageConfigurator.GetAddtionalMessageLabels(PropertyEditors));
+            var labels = MessageConfigurator.GetAddtionalMessageLabels(ProcessName, RoutingKey, PropertyEditors);
+            SerializedPreview = _serializer.Serialize(instance, labels);
             StatusText = "Serialized preview updated.";
         }
         catch (Exception ex)

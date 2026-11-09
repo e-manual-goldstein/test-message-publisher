@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using MessagePublisher.ViewModels;
 
 namespace MessagePublisher
@@ -8,25 +7,23 @@ namespace MessagePublisher
     internal static class MessageConfigurator
     {
         /// <summary>
-        /// Reads <see cref="MessageLabels"/> fields from the dynamic form (matched by property name, case-insensitive).
+        /// <see cref="MessageLabels.ProcessName"/> and <see cref="MessageLabels.RoutingKey"/> come from the host UI;
+        /// <see cref="MessageLabels.SystemId"/> is read from the selected message's property editor.
         /// </summary>
-        internal static MessageLabels GetAddtionalMessageLabels(IEnumerable<PropertyEditorViewModel> propertyEditors)
+        internal static MessageLabels GetAddtionalMessageLabels(
+            string processName,
+            string routingKey,
+            IEnumerable<PropertyEditorViewModel> propertyEditors)
         {
             if (propertyEditors == null)
                 throw new ArgumentNullException(nameof(propertyEditors));
 
-            var labels = new MessageLabels();
-
-            foreach (var labelProperty in typeof(MessageLabels).GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            return new MessageLabels
             {
-                if (labelProperty.PropertyType != typeof(string) || !labelProperty.CanWrite)
-                    continue;
-
-                var value = GetEditorString(propertyEditors, labelProperty.Name);
-                labelProperty.SetValue(labels, value, null);
-            }
-
-            return labels;
+                ProcessName = processName ?? string.Empty,
+                RoutingKey = routingKey ?? string.Empty,
+                SystemId = GetEditorString(propertyEditors, nameof(MessageLabels.SystemId))
+            };
         }
 
         private static string GetEditorString(IEnumerable<PropertyEditorViewModel> propertyEditors, string propertyName)

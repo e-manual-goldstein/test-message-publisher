@@ -19,12 +19,6 @@ public abstract class Event
 
     public string? TenantId { get; set; }
 
-    /// <summary>Wire metadata (maps to serialisation message labels).</summary>
-    public string ProcessName { get; set; } = "";
-
-    /// <summary>Wire metadata (maps to serialisation message labels).</summary>
+    /// <summary>Wire metadata — supplied on the message; maps to serialisation <c>MessageLabels.SystemId</c>.</summary>
     public string SystemId { get; set; } = "";
-
-    /// <summary>Wire metadata (maps to serialisation message labels).</summary>
-    public string RoutingKey { get; set; } = "";
 }
