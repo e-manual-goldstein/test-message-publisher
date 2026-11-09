@@ -19,7 +19,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private bool _isBusy;
     private string _messageTypeFilter = "";
     private MessageTypeListItem? _selectedMessageTypeItem;
-    private string _processName = "";
     private string _routingKey = "";
 
     public MainViewModel()
@@ -31,16 +30,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
         BuildSerializedCommand = new RelayCommand(
             _ => BuildSerialized(),
             _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
-    }
-
-    public string ProcessName
-    {
-        get => _processName;
-        set
-        {
-            if (SetField(ref _processName, value))
-                OnPropertyChanged(nameof(ProcessName));
-        }
     }
 
     public string RoutingKey
@@ -189,7 +178,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             var type = selected.ClrType;
             var instance = MessageInstanceBuilder.Build(type, PropertyEditors);
-            var labels = MessageConfigurator.GetAddtionalMessageLabels(ProcessName, RoutingKey, PropertyEditors);
+            var labels = MessageConfigurator.GetAddtionalMessageLabels(RoutingKey, PropertyEditors);
             SerializedPreview = _serializer.Serialize(instance, labels);
             StatusText = "Serialized preview updated.";
         }

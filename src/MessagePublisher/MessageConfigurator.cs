@@ -6,12 +6,15 @@ namespace MessagePublisher
 {
     internal static class MessageConfigurator
     {
+        /// <summary>Message property name that feeds <see cref="MessageLabels.ProcessName"/>.</summary>
+        internal const string ProcessPropertyName = "Process";
+
         /// <summary>
-        /// <see cref="MessageLabels.ProcessName"/> and <see cref="MessageLabels.RoutingKey"/> come from the host UI;
-        /// <see cref="MessageLabels.SystemId"/> is read from the selected message's property editor.
+        /// <see cref="MessageLabels.RoutingKey"/> comes from the host UI;
+        /// <see cref="MessageLabels.ProcessName"/> from message property <see cref="ProcessPropertyName"/>;
+        /// <see cref="MessageLabels.SystemId"/> from message property <c>SystemId</c>.
         /// </summary>
         internal static MessageLabels GetAddtionalMessageLabels(
-            string processName,
             string routingKey,
             IEnumerable<PropertyEditorViewModel> propertyEditors)
         {
@@ -20,7 +23,7 @@ namespace MessagePublisher
 
             return new MessageLabels
             {
-                ProcessName = processName ?? string.Empty,
+                ProcessName = GetEditorString(propertyEditors, ProcessPropertyName),
                 RoutingKey = routingKey ?? string.Empty,
                 SystemId = GetEditorString(propertyEditors, nameof(MessageLabels.SystemId))
             };
