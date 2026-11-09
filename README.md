@@ -8,12 +8,13 @@ Desktop tool to discover **message types** that inherit a configured **base type
 
 - Windows with **.NET Framework 4.5.2** or later (all projects target **`net452`**)
 - [.NET SDK](https://dotnet.microsoft.com/download) (to build SDK-style projects targeting net452) on Windows, or Visual Studio 2019+
+- **Newtonsoft.Json** for reading `appsettings.json` (no Microsoft.Extensions.Configuration on net452)
 
 ### Solution layout (stand-in for private packages)
 
 | Project | Role |
 |---------|------|
-| [`src/BaseMessageModule`](src/BaseMessageModule) | Abstract `BaseMessage` |
+| [`src/BaseMessageModule`](src/BaseMessageModule) | Abstract `Event` |
 | [`src/MessageTypes`](src/MessageTypes) | Concrete message DTOs (references BaseMessageModule) |
 | [`src/Serialisation`](src/Serialisation) | `EventBus`, `MessageBuilder`, `XmlTextSerialiser` (+ interfaces) |
 | [`src/MessagePublisher`](src/MessagePublisher) | WPF host — **project-references all three** (via [`Directory.Build.props`](src/MessagePublisher/Directory.Build.props)) |
@@ -35,7 +36,8 @@ dotnet run --project src/MessagePublisher/MessagePublisher.csproj
 
 | Setting | Meaning |
 |--------|---------|
-| `MessagePublisher:BaseTypeFullName` | CLR full name of the base message type (default `BaseMessageModule.BaseMessage`) |
+| `MessagePublisher:BaseTypeFullName` | CLR full name of the base message type (default `BaseMessageModule.Event`) |
+| `MSMQAddresses` | Routing key → MSMQ queue path for `MsgRouteEngine.RouteMessage` |
 
 ### Usage
 
@@ -45,6 +47,8 @@ dotnet run --project src/MessagePublisher/MessagePublisher.csproj
 
 ### Project layout
 
+- [`src/MessagePublisher/Services/MsgRouteEngine.cs`](src/MessagePublisher/Services/MsgRouteEngine.cs) — resolve routing key to queue and invoke send port.
+- [`src/MessagePublisher/Services/MSMQSendPort.cs`](src/MessagePublisher/Services/MSMQSendPort.cs) — MSMQ send (stub).
 - [`src/MessagePublisher/Services/ReferencedModuleDiscovery.cs`](src/MessagePublisher/Services/ReferencedModuleDiscovery.cs) — find concrete types in referenced MessageTypes.
 - [`src/MessagePublisher/ViewModels/PropertyEditorViewModel.cs`](src/MessagePublisher/ViewModels/PropertyEditorViewModel.cs) — parsing and validation per property.
 - [`src/MessagePublisher/Services/ModuleCompositionRoot.cs`](src/MessagePublisher/Services/ModuleCompositionRoot.cs) — wires Serialisation module types for the host.

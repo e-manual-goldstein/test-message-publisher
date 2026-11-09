@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using MessagePublisher.Configuration;
+using MessagePublisher.Composition;
 using MessagePublisher.Services;
 using MessagePublisher.ViewModels;
 
@@ -13,33 +13,61 @@ namespace MessagePublisher;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
-    private readonly IMessageSerializer _serializer = ModuleCompositionRoot.CreateSerializer();
-    private readonly string _baseTypeFullName;
+    private readonly AppServiceCollection _serviceCollection;
 
     private string _statusText = "Ready.";
     private string _serializedPreview = "";
     private bool _isBusy;
     private string _messageTypeFilter = "";
     private MessageTypeListItem? _selectedMessageTypeItem;
+    private string _routingKey = "";
+    private bool _fillDefaultValues;
+
+      /// <summary>Root provider built during construction from <see cref="_serviceCollection"/>.</summary>
+    public AppServiceProvider ServiceProvider { get; }
+
+    /// <summary>Service registrations (configure before <see cref="AppServiceCollection.BuildServiceProvider"/>).</summary>
+    public AppServiceCollection ServiceCollection => _serviceCollection;
 
     public MainViewModel()
     {
-        
-        var settings = new MessagePublisherSettings();
-        _baseTypeFullName = settings.BaseTypeFullName;
-
-        BaseTypeFullName = _baseTypeFullName;
+        _serviceCollection = new AppServiceCollection();
+        ServiceConfigurator.Configure(_serviceCollection);
+        ServiceProvider = _serviceCollection.BuildServiceProvider();
 
         FilteredMessageTypes = new ObservableCollection<MessageTypeListItem>();
         PropertyEditors = new ObservableCollection<PropertyEditorViewModel>();
 
-        LoadMessageTypesCommand = new RelayCommand(_ => LoadMessageTypes(), _ => !IsBusy);
         BuildSerializedCommand = new RelayCommand(
             _ => BuildSerialized(),
-            _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
+            _ => !IsBusy && HasRoutingKey && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
+        SendPayloadCommand = new RelayCommand(_ => SendPayload(), _ => CanSendPayload());
     }
 
-    public string BaseTypeFullName { get; }
+    public string RoutingKey
+    {
+        get => _routingKey;
+        set
+        {
+            if (!SetField(ref _routingKey, value))
+                return;
+            OnPropertyChanged(nameof(RoutingKey));
+            ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)SendPayloadCommand).RaiseCanExecuteChanged();
+        }
+    }
+
+    private bool HasRoutingKey => !string.IsNullOrWhiteSpace(RoutingKey);
+
+    public bool FillDefaultValues
+    {
+        get => _fillDefaultValues;
+        set
+        {
+            if (SetField(ref _fillDefaultValues, value))
+                OnPropertyChanged(nameof(FillDefaultValues));
+        }
+    }
 
     public string StatusText
     {
@@ -50,7 +78,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string SerializedPreview
     {
         get => _serializedPreview;
-        private set { if (SetField(ref _serializedPreview, value)) OnPropertyChanged(nameof(SerializedPreview)); }
+        private set
+        {
+            if (!SetField(ref _serializedPreview, value))
+                return;
+            OnPropertyChanged(nameof(SerializedPreview));
+            ((RelayCommand)SendPayloadCommand).RaiseCanExecuteChanged();
+        }
     }
 
     public bool IsBusy
@@ -61,8 +95,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (!SetField(ref _isBusy, value))
                 return;
             OnPropertyChanged(nameof(IsBusy));
-            ((RelayCommand)LoadMessageTypesCommand).RaiseCanExecuteChanged();
             ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)SendPayloadCommand).RaiseCanExecuteChanged();
         }
     }
 
@@ -97,8 +131,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<PropertyEditorViewModel> PropertyEditors { get; }
 
-    public ICommand LoadMessageTypesCommand { get; }
     public ICommand BuildSerializedCommand { get; }
+    public ICommand SendPayloadCommand { get; }
 
     public void Initialize()
     {
@@ -117,10 +151,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         try
         {
-            if (string.IsNullOrWhiteSpace(_baseTypeFullName))
-                throw new InvalidOperationException("Base type full name is required in appsettings.json.");
-
-            var discovered = ReferencedModuleDiscovery.Discover(_baseTypeFullName.Trim());
+            var discovered = ReferencedModuleDiscovery.Discover(typeof(Event).FullName);
             _discovered = discovered.ToList();
             ApplyMessageTypeFilter();
 
@@ -178,14 +209,38 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (selected is null)
                 return;
 
+            if (FillDefaultValues)
+            {
+                foreach (var editor in PropertyEditors)
+                    editor.ApplyDefaultValueIfEmpty();
+                ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
+            }
+
             var type = selected.ClrType;
             var instance = MessageInstanceBuilder.Build(type, PropertyEditors);
-            SerializedPreview = _serializer.Serialize(instance, type);
+            var labels = MessageConfigurator.GetAddtionalMessageLabels(RoutingKey, PropertyEditors);
+            SerializedPreview = ServiceProvider.GetRequiredService<IMessageSerializer>().Serialize(instance, labels);
             StatusText = "Serialized preview updated.";
         }
         catch (Exception ex)
         {
             StatusText = "Serialization error: " + ex.Message;
+        }
+    }
+
+    private bool CanSendPayload() =>
+        !IsBusy && HasRoutingKey && !string.IsNullOrWhiteSpace(SerializedPreview);
+
+    private void SendPayload()
+    {
+        try
+        {
+            ServiceProvider.GetRequiredService<IMsgRouteEngine>().RouteMessage(RoutingKey, SerializedPreview);
+            StatusText = "Message sent via routing engine.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Send error: " + ex.Message;
         }
     }
 

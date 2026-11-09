@@ -7,5 +7,5 @@ public sealed class MessagePublisherSettings
 {
     public const string SectionName = "MessagePublisher";
 
-    public string BaseTypeFullName { get; set; } = "BaseMessageModule.BaseMessage";
+    public string BaseTypeFullName { get; set; } = "BaseMessageModule.Event";
 }

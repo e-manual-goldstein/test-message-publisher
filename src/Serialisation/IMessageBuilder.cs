@@ -4,5 +4,5 @@ namespace Serialisation;
 
 public interface IMessageBuilder
 {
-    string BuildPayload(BaseMessage message);
+    string BuildPayload(Event message);
 }

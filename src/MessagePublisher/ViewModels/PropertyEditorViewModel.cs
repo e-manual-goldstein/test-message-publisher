@@ -229,6 +229,43 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
         }
     }
 
+    /// <summary>
+    /// Fills a default when the user left the field empty. Skips fields with validation errors.
+    /// </summary>
+    public void ApplyDefaultValueIfEmpty()
+    {
+        if (HasErrors || !CanEdit || !IsValueEmpty())
+            return;
+
+        var isNullable = Nullable.GetUnderlyingType(PropertyType) != null;
+
+        switch (EditorKind)
+        {
+            case PropertyEditorKind.Guid:
+                ValueText = Guid.NewGuid().ToString("D");
+                break;
+            case PropertyEditorKind.Integer:
+                if (!isNullable)
+                    ValueText = "0";
+                break;
+            case PropertyEditorKind.Decimal:
+            case PropertyEditorKind.Floating:
+                if (!isNullable)
+                    ValueText = "0";
+                break;
+            default:
+                break;
+        }
+    }
+
+    private bool IsValueEmpty()
+    {
+        if (EditorKind == PropertyEditorKind.Boolean)
+            return Nullable.GetUnderlyingType(PropertyType) != null && BoolValue is null;
+
+        return string.IsNullOrWhiteSpace(ValueText);
+    }
+
     public static PropertyEditorKind MapKind(Type type)
     {
         var u = Nullable.GetUnderlyingType(type) ?? type;

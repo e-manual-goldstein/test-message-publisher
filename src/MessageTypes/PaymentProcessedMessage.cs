@@ -2,7 +2,7 @@ using BaseMessageModule;
 
 namespace MessageTypes;
 
-public sealed class PaymentProcessedMessage : BaseMessage
+public sealed class PaymentProcessedMessage : Event
 {
     public string PaymentId { get; set; } = "";
 

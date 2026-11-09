@@ -29,16 +29,16 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <GroupBox Header="Message modules (project references)" Grid.Row="0" Margin="0,0,0,8" Padding="8">
+    <GroupBox Header="Message labels" Grid.Row="0" Margin="0,0,0,8" Padding="8">
       <Grid>
         <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="140" />
+          <ColumnDefinition Width="120" />
           <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Base type" Margin="0,0,8,0" />
-        <TextBlock Grid.Column="1" VerticalAlignment="Center"
-                   Text="{Binding BaseTypeFullName, Mode=OneWay}"
-                   ToolTip="From appsettings.json" />
+        <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="Routing key *" Margin="0,0,8,0" />
+        <TextBox Grid.Column="1"
+                 Text="{Binding RoutingKey, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Required. Used for MessageLabels.RoutingKey and MSMQ route lookup." />
       </Grid>
     </GroupBox>
 
@@ -53,7 +53,6 @@
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
           <RowDefinition Height="*" />
-          <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
           <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -71,7 +70,6 @@
           <TextBox Text="{Binding MessageTypeFilter, UpdateSourceTrigger=PropertyChanged}"
                    ToolTip="Types whose short name contains this text" />
         </StackPanel>
-        <Button Grid.Row="4" Padding="8,4" Content="Reload message types" Command="{Binding LoadMessageTypesCommand}" />
       </Grid>
 
       <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch" Background="#EEE" />
@@ -79,8 +77,12 @@
       <DockPanel Grid.Column="2">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
           <Button Padding="10,4" Content="Build serialized payload" Command="{Binding BuildSerializedCommand}" />
+          <CheckBox Margin="12,0,0,0" VerticalAlignment="Center"
+                    Content="Fill Default Values"
+                    IsChecked="{Binding FillDefaultValues, Mode=TwoWay}"
+                    ToolTip="Before build: assign defaults to empty fields (random Guid, 0 for integers). Invalid values are not changed." />
           <TextBlock VerticalAlignment="Center" Margin="12,0,0,0" Foreground="Gray" FontSize="11"
-                     Text="MSMQ send is not wired yet; this preview is the payload string step." />
+                     Text="Build a payload, then Send routes it via the routing key and MSMQAddresses config." />
         </StackPanel>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -159,8 +161,16 @@
     </Grid>
 
     <GroupBox Header="Serialized payload (XML via Serialisation module)" Grid.Row="2" Margin="0,8,0,0" Padding="8">
-      <TextBox Text="{Binding SerializedPreview, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
-               TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MinHeight="100" FontFamily="Consolas" FontSize="12" />
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBox Grid.Column="0" Text="{Binding SerializedPreview, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MinHeight="100" FontFamily="Consolas" FontSize="12" />
+        <Button Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top" Padding="20,6" Content="Send"
+                Command="{Binding SendPayloadCommand}" />
+      </Grid>
     </GroupBox>
   </Grid>
 </Window>
