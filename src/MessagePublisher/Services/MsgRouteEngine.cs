@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using Microsoft.Extensions.Configuration;
 using MessagePublisher.Configuration;
 
 namespace MessagePublisher.Services;
 
 public static class MsgRouteEngine
 {
-    private static readonly IReadOnlyDictionary<string, string> QueueByRoutingKey = LoadQueueAddresses();
+    private static readonly IReadOnlyDictionary<string, string> QueueByRoutingKey = AppSettings.GetMsmqAddresses();
 
     public static void RouteMessage(string routingKey, string message)
     {
@@ -24,21 +23,5 @@ public static class MsgRouteEngine
         }
 
         MSMQSendPort.SendMessage(message, queueAddress);
-    }
-
-    private static IReadOnlyDictionary<string, string> LoadQueueAddresses()
-    {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .Build();
-
-        var addresses = configuration.GetSection(MsmqAddressSettings.SectionName)
-            .Get<Dictionary<string, string>>();
-
-        if (addresses == null || addresses.Count == 0)
-            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        return new Dictionary<string, string>(addresses, StringComparer.OrdinalIgnoreCase);
     }
 }

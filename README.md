@@ -8,6 +8,7 @@ Desktop tool to discover **message types** that inherit a configured **base type
 
 - Windows with **.NET Framework 4.5.2** or later (all projects target **`net452`**)
 - [.NET SDK](https://dotnet.microsoft.com/download) (to build SDK-style projects targeting net452) on Windows, or Visual Studio 2019+
+- **Newtonsoft.Json** for reading `appsettings.json` (no Microsoft.Extensions.Configuration on net452)
 
 ### Solution layout (stand-in for private packages)
 
