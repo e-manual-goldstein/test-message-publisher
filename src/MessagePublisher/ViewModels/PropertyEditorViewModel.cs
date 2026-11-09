@@ -253,10 +253,6 @@ public sealed class PropertyEditorViewModel : INotifyDataErrorInfo, INotifyPrope
                 if (!isNullable)
                     ValueText = "0";
                 break;
-            case PropertyEditorKind.Boolean:
-                if (isNullable)
-                    BoolValue = false;
-                break;
             default:
                 break;
         }
