@@ -4,11 +4,17 @@ using MessagePublisher.Configuration;
 
 namespace MessagePublisher.Services;
 
-public static class MsgRouteEngine
+public class MsgRouteEngine : IMsgRouteEngine
 {
+    IMSMQSenderService _msmqSenderService;
+    public MsgRouteEngine(IMSMQSenderService msmqSenderService)
+    {
+        _msmqSenderService = msmqSenderService;
+    }
+
     private static readonly IReadOnlyDictionary<string, string> QueueByRoutingKey = AppSettings.GetMsmqAddresses();
 
-    public static void RouteMessage(string routingKey, string message)
+    public void RouteMessage(string routingKey, string message)
     {
         if (string.IsNullOrWhiteSpace(routingKey))
             throw new ArgumentException("Routing key is required.", nameof(routingKey));
@@ -22,6 +28,6 @@ public static class MsgRouteEngine
                 $"No MSMQ queue address configured for routing key '{routingKey}'.");
         }
 
-        MSMQSendPort.SendMessage(message, queueAddress);
+        _msmqSenderService.SendMessage(message, queueAddress);
     }
 }

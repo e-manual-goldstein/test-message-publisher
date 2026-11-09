@@ -2,9 +2,9 @@ using System;
 
 namespace MessagePublisher.Services;
 
-public static class MSMQSendPort
+public class MSMQSendPort : IMSMQSenderService
 {
-    public static void SendMessage(string message, string queueAddress)
+    public void SendMessage(string message, string queueAddress)
     {
         throw new NotImplementedException();
     }

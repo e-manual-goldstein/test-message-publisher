@@ -14,8 +14,7 @@ namespace MessagePublisher;
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly AppServiceCollection _serviceCollection;
-    private readonly IMessageSerializer _serializer = ModuleCompositionRoot.CreateSerializer();
-    
+
     private string _statusText = "Ready.";
     private string _serializedPreview = "";
     private bool _isBusy;
@@ -220,7 +219,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             var type = selected.ClrType;
             var instance = MessageInstanceBuilder.Build(type, PropertyEditors);
             var labels = MessageConfigurator.GetAddtionalMessageLabels(RoutingKey, PropertyEditors);
-            SerializedPreview = _serializer.Serialize(instance, labels);
+            SerializedPreview = ServiceProvider.GetRequiredService<IMessageSerializer>().Serialize(instance, labels);
             StatusText = "Serialized preview updated.";
         }
         catch (Exception ex)
@@ -236,7 +235,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
-            MsgRouteEngine.RouteMessage(RoutingKey, SerializedPreview);
+            ServiceProvider.GetRequiredService<IMsgRouteEngine>().RouteMessage(RoutingKey, SerializedPreview);
             StatusText = "Message sent via routing engine.";
         }
         catch (Exception ex)
