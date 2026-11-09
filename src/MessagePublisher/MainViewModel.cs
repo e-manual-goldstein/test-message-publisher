@@ -26,10 +26,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         FilteredMessageTypes = new ObservableCollection<MessageTypeListItem>();
         PropertyEditors = new ObservableCollection<PropertyEditorViewModel>();
 
-        LoadMessageTypesCommand = new RelayCommand(_ => LoadMessageTypes(), _ => !IsBusy);
         BuildSerializedCommand = new RelayCommand(
             _ => BuildSerialized(),
             _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
+        SendPayloadCommand = new RelayCommand(_ => SendPayload(), _ => CanSendPayload());
     }
 
     public string RoutingKey
@@ -51,7 +51,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string SerializedPreview
     {
         get => _serializedPreview;
-        private set { if (SetField(ref _serializedPreview, value)) OnPropertyChanged(nameof(SerializedPreview)); }
+        private set
+        {
+            if (!SetField(ref _serializedPreview, value))
+                return;
+            OnPropertyChanged(nameof(SerializedPreview));
+            ((RelayCommand)SendPayloadCommand).RaiseCanExecuteChanged();
+        }
     }
 
     public bool IsBusy
@@ -62,8 +68,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (!SetField(ref _isBusy, value))
                 return;
             OnPropertyChanged(nameof(IsBusy));
-            ((RelayCommand)LoadMessageTypesCommand).RaiseCanExecuteChanged();
             ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)SendPayloadCommand).RaiseCanExecuteChanged();
         }
     }
 
@@ -98,8 +104,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<PropertyEditorViewModel> PropertyEditors { get; }
 
-    public ICommand LoadMessageTypesCommand { get; }
     public ICommand BuildSerializedCommand { get; }
+    public ICommand SendPayloadCommand { get; }
 
     public void Initialize()
     {
@@ -185,6 +191,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             StatusText = "Serialization error: " + ex.Message;
+        }
+    }
+
+    private bool CanSendPayload() =>
+        !IsBusy && !string.IsNullOrWhiteSpace(SerializedPreview);
+
+    private void SendPayload()
+    {
+        try
+        {
+            MsgRouteEngine.RouteMessage(RoutingKey, SerializedPreview);
+            StatusText = "Message sent via routing engine.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Send error: " + ex.Message;
         }
     }
 
