@@ -20,6 +20,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _messageTypeFilter = "";
     private MessageTypeListItem? _selectedMessageTypeItem;
     private string _routingKey = "";
+    private bool _fillDefaultValues;
 
     public MainViewModel()
     {
@@ -39,6 +40,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             if (SetField(ref _routingKey, value))
                 OnPropertyChanged(nameof(RoutingKey));
+        }
+    }
+
+    public bool FillDefaultValues
+    {
+        get => _fillDefaultValues;
+        set
+        {
+            if (SetField(ref _fillDefaultValues, value))
+                OnPropertyChanged(nameof(FillDefaultValues));
         }
     }
 
@@ -181,6 +192,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
             var selected = SelectedMessageTypeItem?.Discovered;
             if (selected is null)
                 return;
+
+            if (FillDefaultValues)
+            {
+                foreach (var editor in PropertyEditors)
+                    editor.ApplyDefaultValueIfEmpty();
+                ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
+            }
 
             var type = selected.ClrType;
             var instance = MessageInstanceBuilder.Build(type, PropertyEditors);

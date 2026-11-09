@@ -77,6 +77,10 @@
       <DockPanel Grid.Column="2">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
           <Button Padding="10,4" Content="Build serialized payload" Command="{Binding BuildSerializedCommand}" />
+          <CheckBox Margin="12,0,0,0" VerticalAlignment="Center"
+                    Content="Fill Default Values"
+                    IsChecked="{Binding FillDefaultValues, Mode=TwoWay}"
+                    ToolTip="Before build: assign defaults to empty fields (random Guid, 0 for integers). Invalid values are not changed." />
           <TextBlock VerticalAlignment="Center" Margin="12,0,0,0" Foreground="Gray" FontSize="11"
                      Text="Build a payload, then Send routes it via the routing key and MSMQAddresses config." />
         </StackPanel>
