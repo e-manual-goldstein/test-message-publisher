@@ -21,9 +21,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _messageTypeFilter = "";
     private MessageTypeListItem? _selectedMessageTypeItem;
 
+    public string BaseTypeFullName => typeof(Event).FullName;
+
     public MainViewModel()
     {
-        
         FilteredMessageTypes = new ObservableCollection<MessageTypeListItem>();
         PropertyEditors = new ObservableCollection<PropertyEditorViewModel>();
 

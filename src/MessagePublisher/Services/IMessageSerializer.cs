@@ -7,5 +7,5 @@ namespace MessagePublisher.Services;
 /// </summary>
 public interface IMessageSerializer
 {
-    string Serialize(object instance, MessageLabels messageConfiguration);
+    string Serialize(object instance, global::MessagePublisher.MessageLabels messageConfiguration);
 }

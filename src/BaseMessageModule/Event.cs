@@ -18,4 +18,13 @@ public abstract class Event
     public int SchemaVersion { get; set; } = 1;
 
     public string? TenantId { get; set; }
+
+    /// <summary>Wire metadata (maps to serialisation message labels).</summary>
+    public string ProcessName { get; set; } = "";
+
+    /// <summary>Wire metadata (maps to serialisation message labels).</summary>
+    public string SystemId { get; set; } = "";
+
+    /// <summary>Wire metadata (maps to serialisation message labels).</summary>
+    public string RoutingKey { get; set; } = "";
 }
