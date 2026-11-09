@@ -5,13 +5,16 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using MessagePublisher.Composition;
 using MessagePublisher.Services;
 using MessagePublisher.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MessagePublisher;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
+    private readonly IServiceCollection _serviceCollection;
     private readonly IMessageSerializer _serializer = ModuleCompositionRoot.CreateSerializer();
     
     private string _statusText = "Ready.";
@@ -22,8 +25,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _routingKey = "";
     private bool _fillDefaultValues;
 
+    /// <summary>Root provider built during construction from <see cref="_serviceCollection"/>.</summary>
+    public IServiceProvider ServiceProvider { get; }
+
+    /// <summary>Service registrations (mutate only before the provider is built — i.e. in <see cref="ViewModelServiceConfigurator"/>).</summary>
+    public IServiceCollection ServiceCollection => _serviceCollection;
+
     public MainViewModel()
     {
+        _serviceCollection = new ServiceCollection();
+        ViewModelServiceConfigurator.Configure(_serviceCollection);
+        ServiceProvider = _serviceCollection.BuildServiceProvider();
+
         FilteredMessageTypes = new ObservableCollection<MessageTypeListItem>();
         PropertyEditors = new ObservableCollection<PropertyEditorViewModel>();
 
