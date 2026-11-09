@@ -29,7 +29,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         BuildSerializedCommand = new RelayCommand(
             _ => BuildSerialized(),
-            _ => !IsBusy && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
+            _ => !IsBusy && HasRoutingKey && SelectedMessageTypeItem != null && !PropertyEditors.Any(p => p.HasErrors));
         SendPayloadCommand = new RelayCommand(_ => SendPayload(), _ => CanSendPayload());
     }
 
@@ -38,10 +38,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
         get => _routingKey;
         set
         {
-            if (SetField(ref _routingKey, value))
-                OnPropertyChanged(nameof(RoutingKey));
+            if (!SetField(ref _routingKey, value))
+                return;
+            OnPropertyChanged(nameof(RoutingKey));
+            ((RelayCommand)BuildSerializedCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)SendPayloadCommand).RaiseCanExecuteChanged();
         }
     }
+
+    private bool HasRoutingKey => !string.IsNullOrWhiteSpace(RoutingKey);
 
     public bool FillDefaultValues
     {
@@ -213,7 +218,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     private bool CanSendPayload() =>
-        !IsBusy && !string.IsNullOrWhiteSpace(SerializedPreview);
+        !IsBusy && HasRoutingKey && !string.IsNullOrWhiteSpace(SerializedPreview);
 
     private void SendPayload()
     {
